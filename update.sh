@@ -2,7 +2,7 @@
 
 [[ $1 == "" ]] && msg="master update" || msg=$1
 
-remotelist="origin"
+remotelist="origin bucket"
 branch="master"
 
 
