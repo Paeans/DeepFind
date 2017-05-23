@@ -12,3 +12,5 @@ ${!array[@]}                                              #get all the indexes o
 grep -w "word"                                            #get the line match the specific word, no *word*
 grep -v "word"                                            #invert mode, get the line don't contain the word
 
+
+
