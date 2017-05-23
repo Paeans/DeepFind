@@ -1,11 +1,14 @@
 #!/bin/bash
 
-[[ $1 == "" ]] && msg="master update" || msg=$1
+msg="master update"
+[[ $1 == "" ]] || msg=$1
 
-remotelist="origin bucket"
+#remotelist="origin bucket"
+remotelist[0]=origin
+remotelist[1]=bucket
 branch="master"
 
-for remote in $remotelist
+for remote in ${remotelist[@]}
 do
     git pull $remote $branch
     [[ $? == 0 ]] || {
@@ -21,11 +24,10 @@ done
 git add -A
 git commit -m "${msg}" && {
 #echo
-for remote in $remotelist
+for remote in ${remotelist[@]}
 do
     echo
     git push $remote $branch
     #echo
 done } # || echo
 echo
-
