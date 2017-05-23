@@ -10,7 +10,7 @@ branch="master"
 
 for remote in ${remotelist[@]}
 do
-    git pull --no-commit $remote $branch
+    git pull  --no-edit --no-commit $remote $branch
     [[ $? == 0 ]] || {
         echo "ERROR between local and $remote"
         echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -22,7 +22,7 @@ do
 done
 
 git add -A
-git commit -m "${msg}" && {
+git commit -m "${msg}" #&& {
 #echo
 for remote in ${remotelist[@]}
 do
@@ -31,5 +31,3 @@ do
     #echo
 done } # || echo
 echo
-
-
