@@ -5,7 +5,6 @@
 remotelist="origin bucket"
 branch="master"
 
-
 for remote in $remotelist
 do
     git pull $remote $branch
