@@ -11,3 +11,5 @@ grep -w "word"                                            #get the line match th
 grep -v "word"                                            #invert mode, get the line don't contain the word
 
 echo $?
+
+
