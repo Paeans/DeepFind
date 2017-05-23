@@ -29,4 +29,5 @@ do
     echo
     git push $remote $branch
     #echo
-done } # || echo
+done #} # || echo
+
