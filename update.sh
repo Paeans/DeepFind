@@ -10,7 +10,7 @@ branch="master"
 
 for remote in ${remotelist[@]}
 do
-    git pull $remote $branch
+    git pull --no-commit $remote $branch
     [[ $? == 0 ]] || {
         echo "ERROR between local and $remote"
         echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
