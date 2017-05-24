@@ -46,3 +46,19 @@ fi                                                        #compare two number bi
   [[ test statement ]] &&
   { statements }
 
+
+function myfunc()
+{
+    local  __resultvar=$1
+    local  myresult='some value'
+    if [[ "$__resultvar" ]]; then
+        eval $__resultvar="'$myresult'"
+    else
+        echo "$myresult"
+    fi
+}
+
+myfunc result
+echo $result
+result2=$(myfunc)                                           #bash function to return value
+echo $result2                                               #values can be set in the function and access outside function
