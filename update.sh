@@ -26,10 +26,13 @@ git commit -m "${msg}" #&& {
 echo "**************************************"
 echo
 
+echotag=0
 for remote in ${remotelist[@]}
 do
-    git push $remote $branch
-    echo "**************************************"
+    git push $remote $branch | grep -v "Everything up-to-date" && {
+      echo "**************************************"
+      echotag=1
+    }
     #echo
 done #} # || echo
-echo
+[[ $echotag == 1 ]] && echo
