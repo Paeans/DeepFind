@@ -33,7 +33,7 @@ do
     git push $remote $branch |& grep -v "up-to-date" 
     git push $remote $branch |& while read -r -a outputstr; do
       echo $outputstr
-      [[ ${outputstr[0]} == "Everything up-to-date" ]] && pushtag=0
+      [[ ${outputstr[0]} == "Everything" ]] && pushtag=0
     done
     [[ $pushtag == 1 ]]&& {    
       echo "**************************************"
