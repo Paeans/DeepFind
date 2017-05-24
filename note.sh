@@ -28,3 +28,6 @@ sed 's/\([0-9]\),\([0-9]\)/\1\2/g' <<< "1,234,567"
 
 [[ -e filename ]]                                         #test filename exist or not
 echo -n -e  abc\\tdef
+
+echo ${str:startindex:exlen}
+
