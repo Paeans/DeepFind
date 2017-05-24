@@ -12,3 +12,4 @@ grep -v "word"                                            #invert mode, get the 
 
 echo $?
 |& <==> 2>&1
+
