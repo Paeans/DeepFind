@@ -31,3 +31,9 @@ echo -n -e  abc\\tdef
 
 echo ${str:startindex:exlen}
 
+[[ $(( seg_len - rem_len )) == $(( seg_len / 2 )) ]]      #compare two string equal or not
+
+[[ $(( seg_len - rem_len )) -lt $(( seg_len / 2 )) ]]     #compare two number big or small 
+if (( ( seg_len - rem_len ) < ( seg_len / 2 ) )); then
+  echo YES
+fi                                                        #compare two number big or small
