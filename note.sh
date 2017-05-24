@@ -25,3 +25,6 @@ $(( 249250621 % 200 ))
 
 echo "1,123,345" | sed 's/\([0-9]\),\([0-9]\)/\1\2/g'     #remove the thousands separator from string
 sed 's/\([0-9]\),\([0-9]\)/\1\2/g' <<< "1,234,567"
+
+[[ -e filename ]]                                         #test filename exist or not
+echo -n -e  abc\\tdef
