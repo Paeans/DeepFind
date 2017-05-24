@@ -30,7 +30,7 @@ echotag=0
 pushtag=1
 for remote in ${remotelist[@]}
 do
-    git push $remote $branch |& grep -v "up-to-date" 
+    #git push $remote $branch |& grep -v "up-to-date" 
     git push $remote $branch |& while read -r -a outputstr; do
       echo $outputstr
       [[ ${outputstr[0]} == "Everything" ]] && pushtag=0
