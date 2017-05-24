@@ -29,7 +29,8 @@ echo
 echotag=0
 for remote in ${remotelist[@]}
 do
-    git push $remote $branch 2>&1 > /dev/stderr | grep -v "up-to-date" && {
+    #git push $remote $branch |& grep -v "up-to-date" && {
+    grep -v "up-to-date" <<< `git push $remote $branch 2>&1` && {
       echo "**************************************"
       echotag=1
     }
