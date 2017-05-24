@@ -27,9 +27,14 @@ echo "**************************************"
 echo
 
 echotag=0
+pushtag=1
 for remote in ${remotelist[@]}
 do
-    git push $remote $branch |& grep -v "up-to-date" && {    
+    git push $remote $branch |& grep -v "up-to-date" 
+    git push $remote $branch |& while read -r outputstr; do
+      [[ $outputstr == "Everything up-to-date" ]] && pushtag=0
+    done
+    [[ $pushtag == 1 ]]&& {    
       echo "**************************************"
       echotag=1
     }
