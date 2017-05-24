@@ -37,3 +37,12 @@ echo ${str:startindex:exlen}
 if (( ( seg_len - rem_len ) < ( seg_len / 2 ) )); then
   echo YES
 fi                                                        #compare two number big or small
+
+[[ test statement ]] && [[ test statement ]] && { statements }
+[[ test statement ]] \
+  && [[ test statement ]] \
+  && { statements }
+[[ test statement ]] &&
+  [[ test statement ]] &&
+  { statements }
+
