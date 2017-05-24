@@ -21,7 +21,7 @@ do
     echo
 done
 
-git add -A
+git add --all
 git commit -m "${msg}" #&& {
 #echo
 for remote in ${remotelist[@]}
