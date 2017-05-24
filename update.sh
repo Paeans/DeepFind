@@ -27,8 +27,8 @@ echo "**************************************"
 
 for remote in ${remotelist[@]}
 do
-    echo "**************************************"
     git push $remote $branch
+    echo "**************************************"
     #echo
 done #} # || echo
 echo
