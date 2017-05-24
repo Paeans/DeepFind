@@ -7,10 +7,8 @@ ${array[@]}                                               #get all the elements 
 ${array[index]}                                           #get indexed elements in the array
 ${!array[@]}                                              #get all the indexes of the array
 
-
 grep -w "word"                                            #get the line match the specific word, no *word*
 grep -v "word"                                            #invert mode, get the line don't contain the word
-
 
 echo $?
 |& <==> 2>&1
