@@ -18,15 +18,17 @@ do
         exit 1
     }
     echo "**************************************"
-    echo
 done
+echo
 
 git add --all
 git commit -m "${msg}" #&& {
-#echo
+echo "**************************************"
+
 for remote in ${remotelist[@]}
 do
-    echo
+    echo "**************************************"
     git push $remote $branch
     #echo
 done #} # || echo
+echo
