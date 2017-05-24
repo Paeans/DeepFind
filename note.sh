@@ -13,10 +13,13 @@ grep -v "word"                                            #invert mode, get the 
 echo $?
 |& <==> 2>&1
 
- while read -r filename; do echo $filename; done < ../gz-file-list.txt | more
+while read -r filename; do echo $filename; done < ../gz-file-list.txt | more
  
- zcat filename.gz | grep -w "chr1" | sort -k2 -n
+zcat filename.gz | grep -w "chr1" | sort -k2 -n
  
- $PEAK_DATA_PATH
- $HMGM_DATA_PATH
+$PEAK_DATA_PATH
+$HMGM_DATA_PATH
  
+$(( 249250621 / 200 ))
+$(( 249250621 % 200 ))
+
