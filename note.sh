@@ -63,4 +63,5 @@ echo $result
 result2=$(myfunc)                                           #bash function to return value
 echo $result2                                               #values can be set in the function and access outside function
 
+myArray=('red' 'orange' 'green')
 
