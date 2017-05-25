@@ -76,3 +76,11 @@ while false; do echo YES; done
 while true; do echo YES; done
 if true; then cmd; fi
 if false; then cmd; fi
+
+ssh user@host "
+cd ~/share/label;
+for i in \`seq 0 22\`; do
+./file.sh chr3 \$i 40 &
+done
+disown -a
+"
