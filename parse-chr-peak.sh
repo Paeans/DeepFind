@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# ./parse-chr-peak.sh chrname peak_start_index peak_number
 
 PEAK_DATA_PATH=~/share/narrowPeak
 HMGM_DATA_PATH=~/share/hg19
@@ -28,6 +30,7 @@ function init_chr_label {
 }
 
 function parse_chr_file {
+  echo "Parse chrome list file"
   chr_name_list=()
   chr_len_list=()
   chr_info_index=0
@@ -44,13 +47,15 @@ function parse_chr_file {
 }
 
 function parse_peak_name {
+  echo "Parse peak list file"
   peak_name_list=()
   peak_info_index=0
   
   while read -r peakname; do
     
-    peak_name_list[$peak_info_index]=$peakname    
+    [[ "$1" == "" ]] || [[ $1 -le $peak_info_index ]] && peak_name_list[$peak_info_index]=$peakname    
     peak_info_index=$(( peak_info_index + 1 ))
+    [[ "$2" != "" ]] && [[ $peak_info_index -ge $(( $1 + $2 )) ]] && break
   done < $PEAK_FILE ;
 }
 
@@ -80,17 +85,23 @@ function calc_index {
   #echo ${indexlist[@]}
 }
 
-parse_chr_file && parse_peak_name &&
+[[ "$1" != "" ]] && chr_name_list[0]="$1"  || 
+parse_chr_file        && 
+parse_peak_name $2 $3 &&
 for chrname in ${chr_name_list[@]}; do
-  for tfname in ${peak_name_list[@]}; do
-    chrlabelfile=$LABEL_DATA_PATH/${chrname}-label.txt
-    [[ -e $chrlabelfile ]] && rm $chrlabelfile
+  chrlabelfile=$LABEL_DATA_PATH/${chrname}-label-"$2".txt
+  [[ -e $chrlabelfile ]] && rm $chrlabelfile
+  for tfname in ${peak_name_list[@]}; do    
     echo -n $tfname" " >> $chrlabelfile
-    zcat $PEAK_DATA_PATH/$tfname | grep -w "$chrname" | sort -k2 -n | while read -r -a chrinfo; do
-      calc_index ${chrinfo[1]} ${chrinfo[2]}
-      echo -n ${indexlist[@]}" " >> $chrlabelfile
-    done
-    echo >> $chrlabelfile
+    zcat $PEAK_DATA_PATH/$tfname | grep -w "$chrname" | sort -k2 -n | {
+      chr_seg_list=""
+      while read -r -a chrinfo; do
+        calc_index ${chrinfo[1]} ${chrinfo[2]}
+        #echo -n ${indexlist[@]}" " >> $chrlabelfile
+        chr_seg_list=$chr_seg_list${indexlist[@]}" "      
+      done
+      echo $chr_seg_list >> $chrlabelfile
+    }
   done
 done
 
