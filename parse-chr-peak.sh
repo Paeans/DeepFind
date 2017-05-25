@@ -28,13 +28,18 @@ function init_chr_label {
 }
 
 function parse_chr_file {
+  chr_name_list=()
+  chr_len_list=()
+  chr_info_index=0
+  
   while read -r -a chrinfo; do
     chrname=${chrinfo[0]}
     chrlength=`sed 's/\([0-9]\),\([0-9]\)/\1\2/g' <<< ${chrinfo[1]}`
-    #seg_num=$(( chrlength / seg_len ))
-    #rem_num=$(( chrlength % seg_len ))
-    #echo $seg_num, $rem_num
-    init_chr_label $chrname $chrlength
+    
+    chr_name_list[$chr_info_index]=$chrname
+    chr_len_list[$chr_info_index]=$chrlength
+    
+    chr_infor_index=$(( chr_info_index + 1 ))
   done < $CHR_LENGTH_FILE ;
 }
 
@@ -64,7 +69,8 @@ function calc_index {
   #echo ${indexlist[@]}
 }
 
-chrname=chr1
+parse_chr_file
+chrname=${chr_name_list[0]}
 tfname=wgEncodeAwgTfbsUwWi38CtcfUniPk.narrowPeak.gz
 chrlabelfile=$LABEL_DATA_PATH/${chrname}-label.txt
 
