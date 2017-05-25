@@ -86,3 +86,6 @@ ssh user@host "
   done
   disown -a
 "
+
+for sname in `cat /etc/hosts | grep slave | awk '{print $1}'`; do ssh $sname "ps x | grep parse"; done
+# if use while
