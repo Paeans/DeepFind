@@ -53,9 +53,9 @@ function parse_peak_name {
   
   while read -r peakname; do
     
-    [[ "$1" == "" ]] || [[ $1 -le $peak_info_index ]] && peak_name_list[$peak_info_index]=$peakname    
+    [[ "$1" == "" ]] || [[ $(( $1 * $2 )) -le $peak_info_index ]] && peak_name_list[$peak_info_index]=$peakname    
     peak_info_index=$(( peak_info_index + 1 ))
-    [[ "$2" != "" ]] && [[ $peak_info_index -ge $(( $1 + $2 )) ]] && break
+    [[ "$2" != "" ]] && [[ $peak_info_index -ge $(( $1 * $2 + $2 )) ]] && break
   done < $PEAK_FILE ;
 }
 
