@@ -39,8 +39,19 @@ function parse_chr_file {
     chr_name_list[$chr_info_index]=$chrname
     chr_len_list[$chr_info_index]=$chrlength
     
-    chr_infor_index=$(( chr_info_index + 1 ))
+    chr_info_index=$(( chr_info_index + 1 ))
   done < $CHR_LENGTH_FILE ;
+}
+
+function parse_peak_name {
+  peak_name_list=()
+  peak_info_index=0
+  
+  while read -r peakname; do
+    
+    peak_name_list[$peak_info_index]=$peakname    
+    peak_info_index=$(( peak_info_index + 1 ))
+  done < $PEAK_FILE ;
 }
 
 function calc_index {
@@ -69,14 +80,17 @@ function calc_index {
   #echo ${indexlist[@]}
 }
 
-parse_chr_file
-chrname=${chr_name_list[0]}
-tfname=wgEncodeAwgTfbsUwWi38CtcfUniPk.narrowPeak.gz
-chrlabelfile=$LABEL_DATA_PATH/${chrname}-label.txt
-
-echo $tfname >> $chrlabelfile
-zcat $PEAK_DATA_PATH/$tfname | grep -w "$chrname" | sort -k2 -n | while read -r -a chrinfo; do
-  calc_index ${chrinfo[1]} ${chrinfo[2]}
-  echo -n ${indexlist[@]}" " >> $chrlabelfile
+parse_chr_file && parse_peak_name &&
+for chrname in ${chr_name_list[@]}; do
+  for tfname in ${peak_name_list[@]}; do
+    chrlabelfile=$LABEL_DATA_PATH/${chrname}-label.txt
+    [[ -e $chrlabelfile ]] && rm $chrlabelfile
+    echo -n $tfname" " >> $chrlabelfile
+    zcat $PEAK_DATA_PATH/$tfname | grep -w "$chrname" | sort -k2 -n | while read -r -a chrinfo; do
+      calc_index ${chrinfo[1]} ${chrinfo[2]}
+      echo -n ${indexlist[@]}" " >> $chrlabelfile
+    done
+    echo >> $chrlabelfile
+  done
 done
-echo >> $chrlabelfile
+
