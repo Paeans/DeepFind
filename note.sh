@@ -38,6 +38,13 @@ if (( ( seg_len - rem_len ) < ( seg_len / 2 ) )); then
   echo YES
 fi                                                        #compare two number big or small
 
+-eq # equal
+-ne # not equal
+-lt # less than
+-le # less than or equal
+-gt # greater than
+-ge # greater than or equal
+
 [[ test statement ]] && [[ test statement ]] && { statements }
 [[ test statement ]] \
   && [[ test statement ]] \
