@@ -77,10 +77,12 @@ while true; do echo YES; done
 if true; then cmd; fi
 if false; then cmd; fi
 
+#!/bin/bash
+
 ssh user@host "
-cd ~/share/label;
-for i in \`seq 0 22\`; do
-./file.sh chr3 \$i 40 &
-done
-disown -a
+  cd ~/share/label;
+  for i in \`seq 0 22\`; do
+    ./filename.sh chr8 \$i 40 &> /dev/null < /dev/null &  #use redirect, otherwise it will hang there
+  done
+  disown -a
 "
