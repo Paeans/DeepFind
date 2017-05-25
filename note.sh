@@ -72,3 +72,7 @@ echo $result2                                               #values can be set i
 
 myArray=('red' 'orange' 'green')
 
+while false; do echo YES; done
+while true; do echo YES; done
+if true; then cmd; fi
+if false; then cmd; fi
