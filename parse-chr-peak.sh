@@ -96,7 +96,7 @@ parse_peak_name $2 $3 &&
 for chrname in ${chr_name_list[@]}; do
   chrlabelfile=$LABEL_DATA_PATH/${chrname}-label-"$2".txt
   [[ -e $chrlabelfile ]] && rm $chrlabelfile
-  for tfname in ${peak_name_list[@]}; do    
+  for tfname in ${peak_name_list[@]}; do
     echo -n $tfname" " >> $chrlabelfile
     zcat $PEAK_DATA_PATH/$tfname | grep -w "$chrname" | sort -k2 -n | {
       chr_seg_list=""
