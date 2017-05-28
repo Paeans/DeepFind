@@ -30,9 +30,6 @@ def creat_seg_label(seg_id):
 
 
 if __name__ == "__main__":
-  '''
-  
-  '''
   
   clabel = sys.argv[1]
   
