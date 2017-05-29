@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import json
 import numpy as np
@@ -59,6 +60,7 @@ def dump_fea_label():
     flabel_list[line] = index
     index += 1
   json.dump(flabel_list, open(label_dir + "/" + flabel_suf, 'w'))
+  return flabel_list
   
 
 def create_seg_label(fnames):
@@ -97,10 +99,13 @@ if __name__ == "__main__":
   '''
   
   clabel = sys.argv[1]
-  
-  flabel_list = json.load(open(label_dir + "/" + flabel_suf, 'r'))
   clabel_fname = label_dir + "/" + clabel + clabel_suf
   
+  
+  if not os.path.isfile(label_dir + "/" + flabel_suf):
+    flabel_list = dump_fea_label
+  else:
+    flabel_list = json.load(open(label_dir + "/" + flabel_suf, 'r'))
   
   for line in open(clabel_fname, 'r'):
     seg_list = line.strip(' \n\t').split()
