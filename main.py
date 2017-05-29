@@ -30,8 +30,7 @@ if __name__ == "__main__":
   if not os.path.isfile(fa_file):
     print "No fasta file " + fa_file + " in " + hg_dir
     exit(1)
-  
-  p = Pool(proc_num)
+    
   for record in SeqIO.parse(fa_file, "fasta"):
     cname = record.id
     clen  = len(record)
