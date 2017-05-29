@@ -51,6 +51,16 @@ def create_seg_label(seg_id):
   return (seg_id, label)
 '''
 
+def dump_fea_label():
+  
+  index = 0
+  flabel_list = {}  
+  for line in [line.strip(' \n\t') for line in open(flabel_fname, 'r')]:
+    flabel_list[line] = index
+    index += 1
+  json.dump(flabel_list, open(label_dir + "/" + flabel_suf, 'w'))
+  
+
 def create_seg_label(fnames):
   flabel_list = json.load(open(label_dir + "/" + flabel_suf, 'r'))
   label = {}
@@ -68,6 +78,7 @@ def create_seg_label(fnames):
         tLabel[index] = 1
         label[seg] = tLabel
   return label
+
   
 def merge_labels(label_list):
   label = {}
@@ -78,6 +89,7 @@ def merge_labels(label_list):
       else:
         label[seg_id] = seg_dict[seg_id]
   return label
+
   
 if __name__ == "__main__":
   '''
@@ -86,13 +98,7 @@ if __name__ == "__main__":
   
   clabel = sys.argv[1]
   
-  index = 0
-  flabel_list = {}  
-  for line in [line.strip(' \n\t') for line in open(flabel_fname, 'r')]:
-    flabel_list[line] = index
-    index += 1
-  json.dump(flabel_list, open(label_dir + "/" + flabel_suf, 'w'))
-  
+  flabel_list = json.load(open(label_dir + "/" + flabel_suf, 'r'))
   clabel_fname = label_dir + "/" + clabel + clabel_suf
   
   
