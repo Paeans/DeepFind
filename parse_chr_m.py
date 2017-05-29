@@ -14,9 +14,12 @@ slabel_suf = "-seg-label.json"
 flabel_suf = "fea-label.json"
 clabel_suf = "-label.txt"
 segset_suf = "-seg.json"
+encode_suf = "-encode.json"
 
 proc_num = 24
 thrd_num = 10
+
+seg_len = 200
 
 raw_label_dict = {}
 
@@ -95,6 +98,14 @@ def dump_seg_label(clabel):
   return seg_set
   
 
+def load_seg_label(clabel):
+  seg_set_file = label_dir + "/" + clabel + segset_suf
+  if os.path.isfile(seg_set_file):
+    seg_set = json.load(open(seg_set_file, 'r'))
+  else:
+    seg_set = dump_seg_label(clabel)
+  return seg_set
+  
 def dump_clabel_list(clabel):
   if not os.path.isfile(label_dir + "/" + flabel_suf):
     flabel_list = dump_fea_label()
