@@ -25,8 +25,9 @@ Files in create_raw_label directory used to generate peak name and corresponding
   
   **2. Result**
     
-    **peak_name   segment_1   segment_2   ... ...**
+    peak_name   segment_1   segment_2   ... ...
     
-    **peak_name** peak data file name (with gz extention)
+    peak_name     : peak data file name (with gz extention)
     
-    **segment_\*** divide the gene sequence into segments of 200 bps, segment_\* is the index of a peak on the chromesome
+    segment_*     : divide the gene sequence into segments of 200 bps, 
+                    segment_* is the index of a peak on the chromesome
