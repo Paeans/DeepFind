@@ -10,11 +10,11 @@ Demo test base on dataset:
 
 <br>
 
-**1. create_raw_label**
+# **1. create_raw_label**
 
 Files in create_raw_label directory used to generate peak name and corresponding segment id list
 
-  **1.1. Usage**
+##  **1.1. Usage**
    
   ```Shell
   parse_chr_peak.sh chr[1-22|X|Y] start_peak end_peak
@@ -26,7 +26,7 @@ Files in create_raw_label directory used to generate peak name and corresponding
   end_peak        : the end index of peak
   ```
   
-  **1.2. Result**
+##  **1.2. Result**
     
     peak_name   segment_1   segment_2   ... ...
     
