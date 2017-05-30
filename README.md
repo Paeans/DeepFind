@@ -4,24 +4,24 @@ Find regulation gene with deep learning model
 
 Demo test base on dataset:
   
-  EncodeDCC:  https://genome.ucsc.edu/ENCODE/downloads.html
-  
-  Roadmap:    https://personal.broadinstitute.org/anshul/projects/roadmap/peaks/consolidated/narrowPeak/
+    EncodeDCC:  https://genome.ucsc.edu/ENCODE/downloads.html
+    
+    Roadmap:    https://personal.broadinstitute.org/anshul/projects/roadmap/peaks/consolidated/narrowPeak/
 
 
 Files in create_raw_label directory used to generate peak name and corresponding segment id list
 
   **1. Usage**
    
-  ```bashscript
+  ```Shell
   parse_chr_peak.sh chr[1-22|X|Y] start_peak end_peak
+    
+  chr[1-22|X|Y]   : the name of chromesome to analysis
+
+  start_peak      : from which peak in the gz-file-list.txt to start extract
+
+  end_peak        : the end index of peak
   ```
-  
-    chr[1-22|X|Y]   : the name of chromesome to analysis
-    
-    start_peak      : from which peak in the gz-file-list.txt to start extract
-    
-    end_peak        : the end index of peak
   
   **2. Result**
     
