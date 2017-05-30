@@ -11,8 +11,8 @@ fa_suf = ".fa"
 hg_dir = "../share/hg19"
 
 ntype_value  = 0.25
-sta_offset = -2
-end_offset   = 2
+sta_offset   = -2
+end_offset   = 3
 
 def encode_bp(bp):
   if bp == 'N': 
