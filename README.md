@@ -8,11 +8,12 @@ Demo test base on dataset:
   
   Roadmap:    https://personal.broadinstitute.org/anshul/projects/roadmap/peaks/consolidated/narrowPeak/
 
+
 Files in create_raw_label directory used to generate peak name and corresponding segment id list
 
-  **Usage**
+  **1. Usage**
    
-  ```bash
+  ```bashscript
   parse_chr_peak.sh chr[1-22|X|Y] start_peak end_peak
   ```
   
@@ -22,8 +23,10 @@ Files in create_raw_label directory used to generate peak name and corresponding
     
     end_peak        : the end index of peak
   
-  **peak_name   segment_1   segment_2   ... ...**
-  
-  **peak_name** peak data file name (with gz extention)
-  
-  **segment_\*** divide the gene sequence into segments of 200 bps, segment_\* is the index of a peak on the chromesome
+  **2. Result**
+    
+    **peak_name   segment_1   segment_2   ... ...**
+    
+    **peak_name** peak data file name (with gz extention)
+    
+    **segment_\*** divide the gene sequence into segments of 200 bps, segment_\* is the index of a peak on the chromesome
