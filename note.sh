@@ -95,3 +95,10 @@ for i in `seq 2 22`; do
   [[ -e raw-label/chr2-label ]] || mkdir raw-label/chr$i-label; 
   mv chr$i-label-*.txt ./raw-label/chr$i-label/; 
 done
+
+
+: << 'END'
+
+code block need to comment
+#used to comment a block of code
+END
