@@ -2,16 +2,19 @@
 #
 # ./parse-chr-peak.sh chrname peak_start_index peak_number
 
-PEAK_DATA_PATH=~/share/narrowPeak
-HMGM_DATA_PATH=~/share/hg19
-LABEL_DATA_PATH=~/share/label
-DEEP_FIND=~/DeepFind
+DEEP_FIND=`pwd`
+SHARE_DIR=~/share
+PEAK_DATA_PATH=$SHARE_DIR/narrowPeak
+HMGM_DATA_PATH=$SHARE_DIR/hg19
+LABEL_DATA_PATH=$SHARE_DIR/label
+
 
 CHR_LENGTH_FILE=$DEEP_FIND/chr-length.txt
 PEAK_FILE=$DEEP_FIND/gz-file-list.txt
 
 seg_len=200
 
+: <<'END'
 function init_chr_label {
   [[ "$1" == "" ]] || [[ "$2" == "" ]] && {
     echo "Function init_chr_label need two parameters"
@@ -28,6 +31,7 @@ function init_chr_label {
   done
   echo >> $chrfile
 }
+END
 
 function parse_chr_file {
   echo "Parse chrome list file"

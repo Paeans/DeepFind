@@ -5,8 +5,8 @@ import sys
 import json
 import numpy as np
 from multiprocessing import Pool
-import Queue, threading
-#from Bio.Seq import Seq
+#import Queue, threading
+
 
 label_dir = "../share/label"
 flabel_fname = "gz-file-list.txt"
