@@ -85,8 +85,8 @@ if __name__ == "__main__":
       stabp = (seg_id + sta_offset) * seg_len
       endbp = (seg_id + end_offset) * seg_len
       if stabp < 0 or endbp > clen: continue
-      encode_dict[seg_id] = [encode_bp(x) 
-        for x in record[stabp : endbp].upper()]
+      encode_dict[seg_id] = [list(x) for x in np.array([encode_bp(x) 
+        for x in record[stabp : endbp].upper()]).transpose()]
     print time.time() - start_time
     json.dump(encode_dict, open(label_dir + "/" + cname + encode_suf, 'w'))
   
