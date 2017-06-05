@@ -193,9 +193,9 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument(
-      "--train_data", type=str, default="./label/chrY-encode.json", help="Path to the training data.")
+      "--train_data", type=str, default="../share/label/chrY-encode.json", help="Path to the training data.")
   parser.add_argument(
-    "--train_label", type=str, default="./label/chrY-seg-label.json", help="Path to the training data.")
+    "--train_label", type=str, default="../share/label/chrY-seg-label.json", help="Path to the training data.")
   parser.add_argument(
       "--test_data", type=str, default="", help="Path to the test data.")
   parser.add_argument(
