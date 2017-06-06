@@ -185,8 +185,7 @@ def main(unused_argv):
   
   prid_results = gene_classifier.predict(
       x=eval_data, batch_size = 10)
-  for r in prid_results:
-    print(r['classes'])
+  print(prid_results.next()['logitresult'])
   
   
 if __name__ == "__main__":
@@ -210,3 +209,15 @@ if __name__ == "__main__":
       help="Path to the dirctory store model data")
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  
+'''
+total_loss = meansq #or other loss calcuation
+l1_regularizer = tf.contrib.layers.l1_regularizer(
+   scale=0.005, scope=None
+)
+weights = tf.trainable_variables() # all vars of your graph
+regularization_penalty = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
+
+regularized_loss = total_loss + regularization_penalty # this loss needs to be minimized
+train_step = tf.train.GradientDescentOptimizer(0.05).minimize(regularized_loss)
+'''
