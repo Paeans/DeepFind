@@ -152,10 +152,10 @@ def load_eval_data():
   gene_eval_feature = json.load(open(FLAGS.eval_data, 'r'))
   gene_eval_label = json.load(open(FLAGS.eval_label, 'r'))
   eval_data, eval_label = [], []
-  for key in gene_train_feature.keys():
-    if not key in gene_train_label: continue
-    eval_data.append(gene_train_feature[key])
-    eval_label.append(gene_train_label[key])
+  for key in gene_eval_feature.keys():
+    if not key in gene_eval_label: continue
+    eval_data.append(gene_eval_feature[key])
+    eval_label.append(gene_eval_label[key])
   print(len(eval_data), len(eval_label))
   return np.array(eval_data, dtype=np.float32), \
            np.array([tf.argmax(input=x, axis=1) 
