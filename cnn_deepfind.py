@@ -21,6 +21,9 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 kernel_num = [320, 480, 960]
 out_unit = 918
 
+def_batch_size = 10
+def_steps_size = 50000
+
 model_regular = layers.sum_regularizer(
         [tf.contrib.layers.l1_regularizer(1e-08),
          tf.contrib.layers.l2_regularizer(5e-07)])
@@ -74,7 +77,7 @@ def cnn_model_fn(features, labels, mode):
   level2 = layers.dropout(inputs=pool2, keep_prob=0.8)
   
   conv3 = layers.conv2d(
-      inputs=level1,
+      inputs=level2,
       num_outputs=kernel_num[2],
       kernel_size=[1, 8],
       stride=1,
@@ -107,9 +110,9 @@ def cnn_model_fn(features, labels, mode):
   if mode != learn.ModeKeys.INFER:
     #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
     
-    loss = tf.nn.sigmoid_cross_entropy_with_logits(
-        labels=labels, logits=logits)
-
+    loss = tf.losses.sigmoid_cross_entropy(
+        multi_class_labels=labels, logits=logits)
+  print(labels, logits)
   # Configure the Training Op (for TRAIN mode)
   if mode == learn.ModeKeys.TRAIN:
     train_op = layers.optimize_loss(
@@ -134,26 +137,29 @@ def cnn_model_fn(features, labels, mode):
 def load_train_data():
   gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
   gene_train_label = json.load(open(FLAGS.train_label, 'r'))
-  data, label = [], []
+  train_data, train_label = [], []
   for key in gene_train_feature.keys():
     if not key in gene_train_label: continue
-    data.append(gene_train_feature[key])
-    label.append(gene_train_label[key])
-  print(len(data), len(label))  
-  return np.array(data, dtype=np.float32), np.array(label, dtype=np.float32)
+    train_data.append(gene_train_feature[key])
+    train_label.append(gene_train_label[key])
+  print(len(train_data), len(train_label))  
+  return np.array(train_data, dtype=np.float32), \
+            np.array(train_label, dtype=np.float32)
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
   
 def load_eval_data():
-  gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
-  gene_train_label = json.load(open(FLAGS.train_label, 'r'))
-  data, label = [], []
+  gene_eval_feature = json.load(open(FLAGS.eval_data, 'r'))
+  gene_eval_label = json.load(open(FLAGS.eval_label, 'r'))
+  eval_data, eval_label = [], []
   for key in gene_train_feature.keys():
     if not key in gene_train_label: continue
-    data.append(gene_train_feature[key])
-    label.append(gene_train_label[key])
-  print(len(data), len(label))
-  return np.array(data, dtype=np.float32), np.array([tf.argmax(input=x, axis=1) for x in np.array(label, dtype=np.float32)])
+    eval_data.append(gene_train_feature[key])
+    eval_label.append(gene_train_label[key])
+  print(len(eval_data), len(eval_label))
+  return np.array(eval_data, dtype=np.float32), \
+           np.array([tf.argmax(input=x, axis=1) 
+                       for x in np.array(eval_label, dtype=np.float32)])
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
 
@@ -176,8 +182,8 @@ def main(unused_argv):
       #input_fn=load_train_data,
       x=train_data,
       y=train_labels,
-      batch_size=1000,
-      steps=5000,  #sizeofdata/batchsize * epoch
+      batch_size=def_batch_size,
+      steps=def_steps_size,  #sizeofdata/batchsize * epoch
       monitors=[logging_hook])
   
   # Configure the accuracy metric for evaluation
@@ -202,9 +208,13 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument(
-      "--train_data", type=str, default="../share/label/chrY-encode.json", help="Path to the training data.")
+      "--train_data", type=str, default="../share/label/chr21-encode.json", help="Path to the training data.")
   parser.add_argument(
-    "--train_label", type=str, default="../share/label/chrY-seg-label.json", help="Path to the training data.")
+      "--train_label", type=str, default="../share/label/chr21-seg-label.json", help="Path to the training data.")
+  parser.add_argument(
+      "--eval_data", type=str, default="../share/label/chr22-encode.json", help="Path to the training data.")
+  parser.add_argument(
+      "--eval_label", type=str, default="../share/label/chr22-seg-label.json", help="Path to the training data.")
   parser.add_argument(
       "--test_data", type=str, default="", help="Path to the test data.")
   parser.add_argument(
