@@ -11,18 +11,23 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.contrib import learn
+from tensorflow.contrib import layers
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
 
 FLAGS = None
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+kernel_num = [320, 480, 960]
+out_unit = 918
+
+model_regular = layers.sum_regularizer(
+        [tf.contrib.layers.l1_regularizer(1e-08),
+         tf.contrib.layers.l2_regularizer(5e-07)])
+
 
 def cnn_model_fn(features, labels, mode):
-  """Model function for CNN."""
-  # Input Layer
-  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-  # MNIST images are 28x28 pixels, and have one color channel
+  
   input_layer = tf.reshape(features, [-1, 4, 1000, 1])
 
   # Convolutional Layer #1
@@ -30,57 +35,71 @@ def cnn_model_fn(features, labels, mode):
   # Padding is added to preserve width and height.
   # Input Tensor Shape: [batch_size, 4, 1000, 1]
   # Output Tensor Shape: [batch_size, 4, 1000, 32]
-  conv1 = tf.layers.conv2d(
+  conv1 = layers.conv2d(
       inputs=input_layer,
-      filters=32,
+      num_outputs=kernel_num[0],
       kernel_size=[4, 8],
-      padding="same",
-      activation=tf.nn.relu)
-
+      stride=1,
+      padding="VALID",
+      activation_fn=tf.nn.relu,
+      weights_regularizer=model_regular)
+      #normalizer_fn=tf.contrib.keras.constraints.max_norm(max_value=0.9, axis=[0, 1, 2])
+      
   # Pooling Layer #1
   # First max pooling layer with a 2x2 filter and stride of 2
-  # Input Tensor Shape: [batch_size, 4, 1000, 32]
-  # Output Tensor Shape: [batch_size, 1, 250, 32]
-  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[4, 4], strides=[4, 4])
-
+  # Input Tensor Shape: [batch_size, 1, 1000, 320]
+  # Output Tensor Shape: [batch_size, 1, 250, 320]
+  pool1 = layers.max_pool2d(inputs=conv1, kernel_size=[1, 4], stride=[1, 4], padding='VALID')
+  level1 = layers.dropout(inputs=pool1, keep_prob=0.8)
+  
   # Convolutional Layer #2
   # Computes 64 features using a 5x5 filter.
   # Padding is added to preserve width and height.
   # Input Tensor Shape: [batch_size, 1, 250, 32]
   # Output Tensor Shape: [batch_size, 1, 250, 64]
-  conv2 = tf.layers.conv2d(
-      inputs=pool1,
-      filters=64,
+  conv2 = layers.conv2d(
+      inputs=level1,
+      num_outputs=kernel_num[1],
       kernel_size=[1, 8],
-      padding="same",
-      activation=tf.nn.relu)
+      stride=1,
+      padding="VALID",
+      activation_fn=tf.nn.relu,
+      weights_regularizer=model_regular)
 
   # Pooling Layer #2
   # Second max pooling layer with a 2x2 filter and stride of 2
   # Input Tensor Shape: [batch_size, 1, 250, 64]
   # Output Tensor Shape: [batch_size, 1, 125, 64]
-  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[1, 2], strides=[1, 2])
-
+  pool2 = layers.max_pool2d(inputs=conv2, kernel_size=[1, 4], stride=[1, 4], padding='VALID')
+  level2 = layers.dropout(inputs=pool2, keep_prob=0.8)
+  
+  conv3 = layers.conv2d(
+      inputs=level1,
+      num_outputs=kernel_num[2],
+      kernel_size=[1, 8],
+      stride=1,
+      padding="VALID",
+      activation_fn=tf.nn.relu,
+      weights_regularizer=model_regular)
+  
+  level3 = layers.dropout(inputs=conv3, keep_prob=0.5)
+  
   # Flatten tensor into a batch of vectors
-  # Input Tensor Shape: [batch_size, 1, 125, 64]
-  # Output Tensor Shape: [batch_size, 1 * 125 * 64]
-  pool2_flat = tf.reshape(pool2, [-1, 1 * 125 * 64])
+  level3_flat = layers.flatten(level3)
+  
+  full_connect1 = layers.fully_connected(
+      inputs=level3_flat,
+      num_outputs=out_unit,
+      weights_regularizer=model_regular)
 
-  # Dense Layer
-  # Densely connected layer with 1024 neurons
-  # Input Tensor Shape: [batch_size, 7 * 7 * 64]
-  # Output Tensor Shape: [batch_size, 1024]
-  dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-
-  # Add dropout operation; 0.6 probability that element will be kept
-  dropout = tf.layers.dropout(
-      inputs=dense, rate=0.4, training=mode == learn.ModeKeys.TRAIN)
-
-  # Logits layer
-  # Input Tensor Shape: [batch_size, 1024]
-  # Output Tensor Shape: [batch_size, 10]
-  logits = tf.layers.dense(inputs=dropout, units=918)
-
+  full_connect2 = layers.fully_connected(
+      inputs=full_connect1,
+      num_outputs=out_unit,
+      activation_fn=None,
+      weights_regularizer=model_regular)
+      
+  logits = tf.sigmoid(full_connect2)
+  print(logits.shape)
   loss = None
   train_op = None
 
@@ -88,22 +107,20 @@ def cnn_model_fn(features, labels, mode):
   if mode != learn.ModeKeys.INFER:
     #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
     
-    loss = tf.losses.softmax_cross_entropy(
-        onehot_labels=labels, logits=logits)
+    loss = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=labels, logits=logits)
 
   # Configure the Training Op (for TRAIN mode)
   if mode == learn.ModeKeys.TRAIN:
-    train_op = tf.contrib.layers.optimize_loss(
+    train_op = layers.optimize_loss(
         loss=loss,
         global_step=tf.contrib.framework.get_global_step(),
-        learning_rate=0.1,
+        learning_rate=0.001,
         optimizer="SGD")
 
   # Generate Predictions
-  print(logits.shape)
+  
   predictions = {
-      "classes": tf.argmax(
-          input=logits, axis=1),
       "probabilities": tf.nn.softmax(
           logits, name="softmax_tensor"),
       "logitresult": logits
@@ -150,26 +167,19 @@ def main(unused_argv):
   tensors_to_log = {"probabilities": "softmax_tensor"}
   logging_hook = tf.train.LoggingTensorHook(
       tensors=tensors_to_log, every_n_iter=50)
-    # Train the model
-  '''
-  mnist_classifier.fit(
-      x=train_data,
-      y=train_labels,
-      batch_size=100,
-      steps=200,
-      monitors=[logging_hook])
-  '''
+  # Train the model
+  
   train_data, train_labels = load_train_data()
   print(train_data.shape, train_labels.shape)
-  '''
+  
   gene_classifier.fit(
       #input_fn=load_train_data,
       x=train_data,
       y=train_labels,
-      batch_size=100,
-      steps=2000,  #sizeofdata/batchsize * epoch
+      batch_size=1000,
+      steps=5000,  #sizeofdata/batchsize * epoch
       monitors=[logging_hook])
-  '''
+  
   # Configure the accuracy metric for evaluation
   metrics = {
       "accuracy":
