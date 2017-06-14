@@ -5,7 +5,7 @@ import sys
 import json
 import numpy as np
 from Bio import SeqIO
-from parse_chr_m import *
+from label_encoder import *
 
 fa_suf = ".fa"
 hg_dir = "../share/hg19"
@@ -48,10 +48,9 @@ def devide_seg_set(seg_set, seg_dict):
     task_sname[i].append(seg_set[-i-1])
   return [map_id_seg(x, seg_dict) for x in task_sname]
 
-  
-if __name__ == "__main__":
-  fa_file = sys.argv[1]
+def encode_gene(fa_file, dump=False):
   start_time = time.time() 
+  fa_file = hg_dir + "/" + fa_file + fa_suf
   if not os.path.isfile(fa_file):
     print "No fasta file " + fa_file + " in " + hg_dir
     exit(1)
@@ -91,9 +90,15 @@ if __name__ == "__main__":
     encode_list = p.map(encode_seg, devide_seg_set(seg_set, seg_dict))
     for r in encode_list:
       encode_dict.update(r)
-    print time.time() - start_time
-    result = {}
-    for x in encode_dict.keys():
-      result[x] = encode_dict[x].tolist()
-    json.dump(result, open(label_dir + "/" + cname + encode_suf, 'w'))
+    
+    if dump:
+      result = {}
+      for x in encode_dict.keys():
+        result[x] = encode_dict[x].tolist()
+      json.dump(result, open(label_dir + "/" + cname + encode_suf, 'w'))
+    return encode_dict
+
+if __name__ == "__main__":
+  fa_file = sys.argv[1]
+  encode_gene(fa_file, dump=True)
   

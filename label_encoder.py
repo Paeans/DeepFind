@@ -105,10 +105,10 @@ def load_seg_label(clabel):
   if os.path.isfile(seg_set_file):
     seg_set = json.load(open(seg_set_file, 'r'))
   else:
-    seg_set = dump_seg_label(clabel)
+    seg_set, _ = dump_seg_label(clabel)
   return seg_set
   
-def dump_clabel_list(clabel):
+def encode_label(clabel, dump=False):
   if not os.path.isfile(label_dir + "/" + flabel_suf):
     flabel_list = dump_fea_label()
   else:
@@ -117,7 +117,7 @@ def dump_clabel_list(clabel):
   if os.path.isfile(label_dir + "/" + clabel + segset_suf) and \
      os.path.isfile(label_dir + "/" + clabel + segraw_suf):
     seg_set = json.load(open(label_dir + "/" + clabel + segset_suf, 'r'))
-    raw_label_dict = json.load(open(label_dir + "/" + clabel + segraw_suf, 'r'))
+    raw_label_dict.update(json.load(open(label_dir + "/" + clabel + segraw_suf, 'r')))
   else:
     seg_set, _ = dump_seg_label(clabel)
   
@@ -139,8 +139,10 @@ def dump_clabel_list(clabel):
         clabel_list[seg_id] = clabel_list[seg_id] + label[seg_id]
       else:
         clabel_list[seg_id] = label[seg_id]
-  json.dump({x:clabel_list[x].tolist() for x in clabel_list}, 
+  if dump: 
+    json.dump({x:clabel_list[x].tolist() for x in clabel_list}, 
                open(label_dir + "/" + clabel + slabel_suf, 'w'))
+  return clabel_list
   
 
 def create_seg_label(fnames):
@@ -148,7 +150,7 @@ def create_seg_label(fnames):
   label = {}
   flabel_num = len(flabel_list)
   for fname in fnames:
-    if fname not in flabel_list or fname not in raw_label_dict: continue
+    if fname not in flabel_list or fname not in raw_label_dict: continue    
     index = flabel_list[fname]
     
     seg_list = raw_label_dict[fname]
@@ -179,7 +181,7 @@ if __name__ == "__main__":
   '''
   
   clabel = sys.argv[1]
-  dump_clabel_list(clabel)
+  encode_label(clabel, dump=True)
   
 
 

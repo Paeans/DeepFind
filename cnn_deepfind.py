@@ -5,24 +5,25 @@ from __future__ import print_function
 import argparse
 import sys
 import tempfile
-import json
 
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
+from tensorflow.contrib.learn import io as numpy_io
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
+
+from gene_encoder import encode_gene
+from label_encoder import encode_label
 
 FLAGS = None
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+tf.logging.set_verbosity(tf.logging.INFO)
 
 kernel_num = [320, 480, 960]
 out_unit = 918
 
-def_batch_size = 10
-def_steps_size = 50000
 
 model_regular = layers.sum_regularizer(
         [tf.contrib.layers.l1_regularizer(1e-08),
@@ -101,18 +102,18 @@ def cnn_model_fn(features, labels, mode):
       activation_fn=None,
       weights_regularizer=model_regular)
       
-  logits = tf.sigmoid(full_connect2)
-  print(logits.shape)
+  logits = tf.sigmoid(full_connect2, name='logits_results')
+  
   loss = None
   train_op = None
 
   # Calculate Loss (for both TRAIN and EVAL modes)
   if mode != learn.ModeKeys.INFER:
     #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
-    
+    print(labels, logits)
     loss = tf.losses.sigmoid_cross_entropy(
         multi_class_labels=labels, logits=logits)
-  print(labels, logits)
+  
   # Configure the Training Op (for TRAIN mode)
   if mode == learn.ModeKeys.TRAIN:
     train_op = layers.optimize_loss(
@@ -124,10 +125,8 @@ def cnn_model_fn(features, labels, mode):
   # Generate Predictions
   
   predictions = {
-      "probabilities": tf.nn.softmax(
-          logits, name="softmax_tensor"),
       "logitresult": logits
-  }
+  }#Generate predictions_key_list, 1:918
 
   # Return a ModelFnOps object
   return model_fn_lib.ModelFnOps(
@@ -135,31 +134,32 @@ def cnn_model_fn(features, labels, mode):
 
 
 def load_train_data():
-  gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
-  gene_train_label = json.load(open(FLAGS.train_label, 'r'))
+  #gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
+  #gene_train_label = json.load(open(FLAGS.train_label, 'r'))
+  
+  gene_train_feature = encode_gene(FLAGS.train_data)
+  gene_train_label = encode_label(FLAGS.train_label)
   train_data, train_label = [], []
   for key in gene_train_feature.keys():
     if not key in gene_train_label: continue
     train_data.append(gene_train_feature[key])
     train_label.append(gene_train_label[key])
-  print(len(train_data), len(train_label))  
   return np.array(train_data, dtype=np.float32), \
             np.array(train_label, dtype=np.float32)
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
   
 def load_eval_data():
-  gene_eval_feature = json.load(open(FLAGS.eval_data, 'r'))
-  gene_eval_label = json.load(open(FLAGS.eval_label, 'r'))
+  gene_eval_feature = encode_gene(FLAGS.eval_data)
+  gene_eval_label = encode_label(FLAGS.eval_label)
+  
   eval_data, eval_label = [], []
   for key in gene_eval_feature.keys():
-    if not key in gene_eval_label: continue
+    if not key in gene_eval_label: continue    
     eval_data.append(gene_eval_feature[key])
     eval_label.append(gene_eval_label[key])
-  print(len(eval_data), len(eval_label))
   return np.array(eval_data, dtype=np.float32), \
-           np.array([tf.argmax(input=x, axis=1) 
-                       for x in np.array(eval_label, dtype=np.float32)])
+           np.array(eval_label, dtype=np.float32)
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
 
@@ -169,8 +169,8 @@ def main(unused_argv):
           model_dir=FLAGS.model_dir)
           
   # Set up logging for predictions
-  # Log the values in the "Softmax" tensor with label "probabilities"
-  tensors_to_log = {"probabilities": "softmax_tensor"}
+  # Log the values in the "logits" tensor with label "logits_results"
+  tensors_to_log = {"logitresult": "logits_results"}
   logging_hook = tf.train.LoggingTensorHook(
       tensors=tensors_to_log, every_n_iter=50)
   # Train the model
@@ -178,43 +178,76 @@ def main(unused_argv):
   train_data, train_labels = load_train_data()
   print(train_data.shape, train_labels.shape)
   
+  '''
+  input_fn = numpy_io.numpy_input_fn(
+      {'train_data':train_data}, 
+      train_labels,
+      batch_size=FLAGS.batch_size,
+      shuffle=True,
+      num_epochs=FLAGS.num_epochs)
+  '''
   gene_classifier.fit(
       #input_fn=load_train_data,
       x=train_data,
       y=train_labels,
-      batch_size=def_batch_size,
-      steps=def_steps_size,  #sizeofdata/batchsize * epoch
+      batch_size=FLAGS.batch_size,
+      steps=train_data.shape[0] / FLAGS.batch_size * FLAGS.num_epochs,  #sizeofdata/batchsize * epoch
       monitors=[logging_hook])
+  '''
+  gene_classifier.fit(
+      input_fn=input_fn,
+      steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
+      monitors=[logging_hook])
+  '''
+  print("Finish training")
+
+def my_auc(labels, predictions, weights=None, num_thresholds=200,
+        metrics_collections=None, updates_collections=None,
+        curve='ROC', name=None):
+  print('shape of label: ', labels.get_shape().ndims, 'shape of predictions: ', predictions.get_shape().ndims)
+  #return tf.metrics.auc(labels, predictions, weights, num_thresholds, metrics_collections,
+  #      updates_collections, curve, name)
+  return tf.metrics.auc(labels[:, 1], predictions[:, 1], weights, num_thresholds, metrics_collections,
+        updates_collections, curve, name)
+        
+def eval(unused_argv):
+  gene_classifier = learn.Estimator(
+          model_fn=cnn_model_fn,
+          model_dir=FLAGS.model_dir)
   
   # Configure the accuracy metric for evaluation
   metrics = {
-      "accuracy":
+      "auc":
           learn.MetricSpec(
-              metric_fn=tf.metrics.accuracy, prediction_key="classes"),
-  }
+              metric_fn=my_auc, prediction_key="logitresult"),
+  }   #checkpoint_path
 
   # Evaluate the model and print results
   eval_data, eval_labels = load_eval_data()
-  #eval_results = gene_classifier.evaluate(
-  #    x=eval_data, y=eval_labels, steps=1, metrics=metrics)
-  #print(eval_results)
+  print(eval_data.shape, eval_labels.shape)
+  eval_results = gene_classifier.evaluate(
+      x=eval_data, y=eval_labels, metrics=metrics)#batch_size=10000, steps=1, 
+  print('evaluate results: ', eval_results)
   
-  prid_results = gene_classifier.predict(
-      x=eval_data, batch_size = 10)
-  print(prid_results.next()['logitresult'])
-  
+  #prid_results = gene_classifier.predict(
+  #    x=eval_data, batch_size = 10)
+  #print(prid_results.next()['logitresult'])
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
+  parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
+  parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
+  parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to fit the model")
+  parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
   parser.add_argument(
-      "--train_data", type=str, default="../share/label/chr21-encode.json", help="Path to the training data.")
+      "--train_data", type=str, default="chr21", help="Path to the training data.")
   parser.add_argument(
-      "--train_label", type=str, default="../share/label/chr21-seg-label.json", help="Path to the training data.")
+      "--train_label", type=str, default="chr21", help="Path to the training data.")
   parser.add_argument(
-      "--eval_data", type=str, default="../share/label/chr22-encode.json", help="Path to the training data.")
+      "--eval_data", type=str, default="chr22", help="Path to the training data.")
   parser.add_argument(
-      "--eval_label", type=str, default="../share/label/chr22-seg-label.json", help="Path to the training data.")
+      "--eval_label", type=str, default="chr22", help="Path to the training data.")
   parser.add_argument(
       "--test_data", type=str, default="", help="Path to the test data.")
   parser.add_argument(
@@ -227,8 +260,16 @@ if __name__ == "__main__":
       type=str,
       default="/tmp/gene_deep_finding",
       help="Path to the dirctory store model data")
+  parser.add_argument(
+      "--log_dir",
+      type=str,
+      default="/tmp/gene_finding_dir",
+      help="Path to the directory store log data")
   FLAGS, unparsed = parser.parse_known_args()
-  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  if FLAGS.work_type == 'train':
+    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  elif FLAGS.work_type == 'eval':
+    tf.app.run(main=eval, argv=[sys.argv[0]] + unparsed)
   
 '''
 total_loss = meansq #or other loss calcuation
@@ -241,3 +282,14 @@ regularization_penalty = tf.contrib.layers.apply_regularization(l1_regularizer, 
 regularized_loss = total_loss + regularization_penalty # this loss needs to be minimized
 train_step = tf.train.GradientDescentOptimizer(0.05).minimize(regularized_loss)
 '''
+
+'''
+input_fn = tf.contrib.learn.io.numpy_input_fn({"x":x}, y, batch_size=4,
+                                              num_epochs=1000)
+'''
+
+'''
+regressor.fit(input_fn=lambda: input_fn(training_set), steps=5000)
+'''
+
+
