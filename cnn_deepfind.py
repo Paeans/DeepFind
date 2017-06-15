@@ -19,8 +19,6 @@ from label_encoder import encode_label
 
 FLAGS = None
 
-tf.logging.set_verbosity(tf.logging.INFO)
-
 kernel_num = [320, 480, 960]
 out_unit = 918
 
@@ -30,9 +28,9 @@ model_regular = layers.sum_regularizer(
          tf.contrib.layers.l2_regularizer(5e-07)])
 
 
-def cnn_model_fn(features, labels, mode):
-  
-  input_layer = tf.reshape(features, [-1, 4, 1000, 1])
+def cnn_model_fn(features, labels, mode, params):
+  print(features, labels)  
+  input_layer = tf.reshape(features['train_data'], [-1, 4, 1000, 1])
 
   # Convolutional Layer #1
   # Computes 32 features using a 5x5 filter with ReLU activation.
@@ -119,7 +117,7 @@ def cnn_model_fn(features, labels, mode):
     train_op = layers.optimize_loss(
         loss=loss,
         global_step=tf.contrib.framework.get_global_step(),
-        learning_rate=0.001,
+        learning_rate=params['learning_rate'], #0.001,
         optimizer="SGD")
 
   # Generate Predictions
@@ -142,6 +140,7 @@ def load_train_data():
   train_data, train_label = [], []
   for key in gene_train_feature.keys():
     if not key in gene_train_label: continue
+    if np.random.rand() < 0.8: continue
     train_data.append(gene_train_feature[key])
     train_label.append(gene_train_label[key])
   return np.array(train_data, dtype=np.float32), \
@@ -166,8 +165,9 @@ def load_eval_data():
 def main(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
-          model_dir=FLAGS.model_dir)
-          
+          model_dir=FLAGS.model_dir,
+          params={'learning_rate':0.001})
+  
   # Set up logging for predictions
   # Log the values in the "logits" tensor with label "logits_results"
   tensors_to_log = {"logitresult": "logits_results"}
@@ -178,7 +178,7 @@ def main(unused_argv):
   train_data, train_labels = load_train_data()
   print(train_data.shape, train_labels.shape)
   
-  '''
+  
   input_fn = numpy_io.numpy_input_fn(
       {'train_data':train_data}, 
       train_labels,
@@ -196,9 +196,9 @@ def main(unused_argv):
   '''
   gene_classifier.fit(
       input_fn=input_fn,
-      steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
+      #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
       monitors=[logging_hook])
-  '''
+  
   print("Finish training")
 
 def my_auc(labels, predictions, weights=None, num_thresholds=200,
@@ -238,7 +238,7 @@ if __name__ == "__main__":
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
   parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
-  parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to fit the model")
+  parser.add_argument("--num_epochs", type=int, default=2, help="Number of epochs to fit the model")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
   parser.add_argument(
       "--train_data", type=str, default="chr21", help="Path to the training data.")
@@ -265,7 +265,19 @@ if __name__ == "__main__":
       type=str,
       default="/tmp/gene_finding_dir",
       help="Path to the directory store log data")
+  parser.add_argument(
+      "--log_level",
+      type=str,
+      default="INFO",
+      help="Level to logging")
   FLAGS, unparsed = parser.parse_known_args()
+  
+  log_level = FLAGS.log_level
+  if log_level == 'INFO' or log_level == 'info':
+    tf.logging.set_verbosity(tf.logging.INFO)
+  elif log_level == 'ERROR' or log_level == 'error':
+    tf.logging.set_verbosity(tf.logging.ERROR)
+  
   if FLAGS.work_type == 'train':
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
   elif FLAGS.work_type == 'eval':
