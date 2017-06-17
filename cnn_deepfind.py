@@ -19,6 +19,7 @@ from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_f
 from gene_encoder import encode_gene
 from label_encoder import encode_label
 
+
 FLAGS = None
 
 kernel_num = [320, 480, 960]
@@ -138,7 +139,7 @@ def cnn_model_fn(features, labels, mode, params):
   return model_fn_lib.ModelFnOps(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
-
+'''
 def load_train_data():
   #gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
   #gene_train_label = json.load(open(FLAGS.train_label, 'r'))
@@ -155,7 +156,7 @@ def load_train_data():
             np.array(train_label, dtype=np.float32)
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
-  
+''' 
 
 def load_data_from_file(filename):
   
@@ -266,10 +267,13 @@ def eval(unused_argv):
   }   #checkpoint_path
 
   # Evaluate the model and print results
-  eval_data, eval_labels = load_eval_data()
+  test_data_file = data_dir + '/' + test_file
+  eval_data, eval_labels = load_data_from_file(test_data_file)
+  
   print(eval_data.shape, eval_labels.shape)
   eval_results = gene_classifier.evaluate(
-      x=eval_data, y=eval_labels, metrics=metrics)#batch_size=10000, steps=1, 
+      x=eval_data, y=eval_labels, metrics=metrics)
+      #batch_size=10000, steps=1, 
   print('evaluate results: ', eval_results)
   
   #prid_results = gene_classifier.predict(

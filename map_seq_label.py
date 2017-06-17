@@ -41,7 +41,13 @@ def create_peak_dict(peak_file_name):
       chrname, start_bp, end_bp = line.strip().split()[0:3]
       if chrname == 'chrX' or chrname == 'chrY' or chrname == 'chrM': continue
       try:
-        seg_index = (int(start_bp) + int(end_bp)) // 2 // segment_len
+        ##seg_index = (int(start_bp) + int(end_bp)) // 2 // segment_len
+        
+        cal_index_fun = lambda x: int(x) // segment_len + \
+                             (0 if int(x) % segment_len <= segment_len // 2
+                                else 1)
+        start_index = cal_index_fun(start_bp)
+        end_index = cal_index_fun(end_bp)
         '''
         if chrname in result:
           result[chrname].append(seg_index)
@@ -50,7 +56,8 @@ def create_peak_dict(peak_file_name):
         '''
         if chrname not in result:
           result[chrname] = set()
-        result[chrname].add(seg_index)
+        ##result[chrname].add(seg_index)
+        [result[chrname].add(x) for x in range(start_index, end_index)]
         
       except ValueError:
         print('ERROR: not integer value occured in', peak_file_name)
@@ -128,6 +135,8 @@ if __name__ == '__main__':
     result_name = label_data_dir + '/' + 'train_data.gz' 
   elif FLAGS.data_type == 'test':
     result_name = label_data_dir + '/' + 'test_data.gz' 
+  
+  counter = 0
   with gzip.open(result_name, 'w') as tdfile:
     for peak_list_dict in chrname_peak_dict.values():
       turple_list = create_seq_label_map(peak_list_dict)
@@ -135,4 +144,6 @@ if __name__ == '__main__':
       for segment, label in turple_list:
         tdfile.write(str(segment.seq) + ' ' + ''.join(str(x) for x in label))        
         tdfile.write('\n')
+        counter += 1
+  print(counter)
   
