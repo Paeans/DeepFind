@@ -2,9 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
+import os
 import sys
-import tempfile
+import argparse
+
+import gzip
 
 import numpy as np
 import tensorflow as tf
@@ -22,6 +24,12 @@ FLAGS = None
 kernel_num = [320, 480, 960]
 out_unit = 918
 
+segment_len = 1000
+feature_len = 918
+
+data_dir = '../share/label'
+train_file = 'train_data.gz'
+test_file = 'test_data.gz'
 
 model_regular = layers.sum_regularizer(
         [tf.contrib.layers.l1_regularizer(1e-08),
@@ -148,6 +156,40 @@ def load_train_data():
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
   
+
+def load_data_from_file(filename):
+  
+  if not os.path.isfile(filename):
+    print('ERROR:', filename, 'not exist')
+    return None, None
+    
+  data, target = [], []
+  vDict = {'A':0, 'T':1, 'C':2, 'G':3}
+  
+  with gzip.open(filename, 'r') as data_file:
+    for line in data_file:
+      if np.random.rand() < 0.99: continue #dropout to test code more faster
+      
+      segment, label = line.strip().split()
+      if len(segment) != segment_len:
+        print('ERROR:', segment, 'length is not', segment_len)
+        continue
+      if len(label) != feature_len:
+        print('ERROR:', label, 'length is not', feature_len)
+        continue
+        
+      tmp_matrix = np.zeros((4, segment_len))
+      for i in range(segment_len):
+        if segment[i] not in vDict: continue
+        tmp_matrix[vDict[segment[i]], i] = 1
+      data.append(tmp_matrix)
+      
+      target.append(np.array([int(x) for x in label]))
+  
+  return np.array(data, dtype = np.float32), \
+          np.array(target, dtype = np.float32)
+  
+  
 def load_eval_data():
   gene_eval_feature = encode_gene(FLAGS.eval_data)
   gene_eval_label = encode_label(FLAGS.eval_label)
@@ -175,7 +217,8 @@ def main(unused_argv):
       tensors=tensors_to_log, every_n_iter=50)
   # Train the model
   
-  train_data, train_labels = load_train_data()
+  train_data_file = data_dir + '/' + train_file
+  train_data, train_labels = load_data_from_file(train_data_file)
   print(train_data.shape, train_labels.shape)
   
   
@@ -236,7 +279,7 @@ def eval(unused_argv):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
-  parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
+  parser.add_argument("--batch_size", type=int, default=128, help="Size of batch fit to model")
   parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, default=2, help="Number of epochs to fit the model")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
