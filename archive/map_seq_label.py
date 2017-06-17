@@ -48,15 +48,18 @@ def create_peak_dict(peak_file_name):
                                 else 1)
         start_index = cal_index_fun(start_bp)
         end_index = cal_index_fun(end_bp)
+        
         '''
         if chrname in result:
           result[chrname].append(seg_index)
         else:
           result[chrname] = [seg_index]
         '''
+        
         if chrname not in result:
           result[chrname] = set()
         ##result[chrname].add(seg_index)
+        
         [result[chrname].add(x) for x in range(start_index, end_index)]
         
       except ValueError:
@@ -141,6 +144,8 @@ if __name__ == '__main__':
     for peak_list_dict in chrname_peak_dict.values():
       turple_list = create_seq_label_map(peak_list_dict)
       
+      #tdfile.write('\n'.join([str(segment.seq) + ' ' + ''.join(str(x) for x in label) for segment, label in turple_list]))
+      #counter += len(turple_list)
       for segment, label in turple_list:
         tdfile.write(str(segment.seq) + ' ' + ''.join(str(x) for x in label))        
         tdfile.write('\n')

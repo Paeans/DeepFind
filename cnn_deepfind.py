@@ -16,8 +16,8 @@ from tensorflow.contrib import layers
 from tensorflow.contrib.learn import io as numpy_io
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
 
-from gene_encoder import encode_gene
-from label_encoder import encode_label
+#from gene_encoder import encode_gene
+#from label_encoder import encode_label
 
 
 FLAGS = None
@@ -190,7 +190,7 @@ def load_data_from_file(filename):
   return np.array(data, dtype = np.float32), \
           np.array(target, dtype = np.float32)
   
-  
+'''  
 def load_eval_data():
   gene_eval_feature = encode_gene(FLAGS.eval_data)
   gene_eval_label = encode_label(FLAGS.eval_label)
@@ -204,6 +204,7 @@ def load_eval_data():
            np.array(eval_label, dtype=np.float32)
   #return tf.constant(np.array(data, dtype=np.float32)), \
   #         tf.constant(np.array(label, dtype=np.float32))
+'''
 
 def main(unused_argv):
   gene_classifier = learn.Estimator(
@@ -287,6 +288,7 @@ if __name__ == "__main__":
   parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, default=2, help="Number of epochs to fit the model")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
+  '''
   parser.add_argument(
       "--train_data", type=str, default="chr21", help="Path to the training data.")
   parser.add_argument(
@@ -297,6 +299,7 @@ if __name__ == "__main__":
       "--eval_label", type=str, default="chr22", help="Path to the training data.")
   parser.add_argument(
       "--test_data", type=str, default="", help="Path to the test data.")
+  '''
   parser.add_argument(
       "--predict_data",
       type=str,
