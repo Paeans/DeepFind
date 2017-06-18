@@ -158,7 +158,7 @@ def load_train_data():
   #         tf.constant(np.array(label, dtype=np.float32))
 ''' 
 
-def load_data_from_file(filename):
+def load_data_from_file(filename, startline, endline, multi = 1024):
   
   if not os.path.isfile(filename):
     print('ERROR:', filename, 'not exist')
@@ -168,8 +168,11 @@ def load_data_from_file(filename):
   vDict = {'A':0, 'T':1, 'C':2, 'G':3}
   
   with gzip.open(filename, 'r') as data_file:
+    counter = 0
     for line in data_file:
-      if np.random.rand() < 0.99: continue #dropout to test code more faster
+      counter += 1
+      if counter <= startline * multi: continue
+      if counter > endline * multi: break
       
       segment, label = line.strip().split()
       if len(segment) != segment_len:
@@ -186,7 +189,7 @@ def load_data_from_file(filename):
       data.append(tmp_matrix)
       
       target.append(np.array([int(x) for x in label]))
-  
+      
   return np.array(data, dtype = np.float32), \
           np.array(target, dtype = np.float32)
   
@@ -216,34 +219,46 @@ def main(unused_argv):
   # Log the values in the "logits" tensor with label "logits_results"
   tensors_to_log = {"logitresult": "logits_results"}
   logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=50)
+      tensors=tensors_to_log, every_n_iter=128)
   # Train the model
   
   train_data_file = data_dir + '/' + train_file
-  train_data, train_labels = load_data_from_file(train_data_file)
-  print(train_data.shape, train_labels.shape)
+  startline = 0
+  load_size = 128
   
-  
-  input_fn = numpy_io.numpy_input_fn(
-      {'train_data':train_data}, 
-      train_labels,
-      batch_size=FLAGS.batch_size,
-      shuffle=True,
-      num_epochs=FLAGS.num_epochs)
-  '''
-  gene_classifier.fit(
-      #input_fn=load_train_data,
-      x=train_data,
-      y=train_labels,
-      batch_size=FLAGS.batch_size,
-      steps=train_data.shape[0] / FLAGS.batch_size * FLAGS.num_epochs,  #sizeofdata/batchsize * epoch
-      monitors=[logging_hook])
-  '''
-  gene_classifier.fit(
-      input_fn=input_fn,
-      #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
-      monitors=[logging_hook])
-  
+  while True:
+    train_data, train_labels = load_data_from_file(
+                                   train_data_file, 
+                                   startline = startline, 
+                                   endline = startline + load_size)
+    
+    print(train_data.shape, train_labels.shape)
+    if train_data.shape[0] == 0: break
+    
+    
+    input_fn = numpy_io.numpy_input_fn(
+        {'train_data':train_data}, 
+        train_labels,
+        batch_size=FLAGS.batch_size,
+        shuffle=True,
+        num_epochs=FLAGS.num_epochs)
+    '''
+    gene_classifier.fit(
+        #input_fn=load_train_data,
+        x=train_data,
+        y=train_labels,
+        batch_size=FLAGS.batch_size,
+        steps=train_data.shape[0] / FLAGS.batch_size * FLAGS.num_epochs,  #sizeofdata/batchsize * epoch
+        monitors=[logging_hook])
+    '''    
+    gene_classifier.fit(
+        input_fn=input_fn,
+        #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
+        monitors=[logging_hook])
+    
+    startline = startline + load_size
+    print('Finish sub task training')
+    sys.stdout.flush()
   print("Finish training")
 
 def my_auc(labels, predictions, weights=None, num_thresholds=200,
@@ -258,7 +273,8 @@ def my_auc(labels, predictions, weights=None, num_thresholds=200,
 def eval(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn,
-          model_dir=FLAGS.model_dir)
+          model_dir=FLAGS.model_dir,
+          params={'learning_rate':0.001})
   
   # Configure the accuracy metric for evaluation
   metrics = {
@@ -280,6 +296,15 @@ def eval(unused_argv):
   #prid_results = gene_classifier.predict(
   #    x=eval_data, batch_size = 10)
   #print(prid_results.next()['logitresult'])
+
+def test(unused_argv):
+  gene_classifier = learn.Estimator(
+            model_fn = cnn_model_fn,
+            model_dir = FLAGS.model_dir,
+            params={'learning_rate':0.001})
+            
+  tf_config = learn.RunConfig()
+  print(tf_config)
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -332,6 +357,8 @@ if __name__ == "__main__":
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
   elif FLAGS.work_type == 'eval':
     tf.app.run(main=eval, argv=[sys.argv[0]] + unparsed)
+  elif FLAGS.work_type == 'test':
+    tf.app.run(main=test, argv=[sys.argv[0]] + unparsed)
   
 '''
 total_loss = meansq #or other loss calcuation

@@ -98,6 +98,9 @@ def create_seq_label_map(peak_list_dict):
     if not cname == chrname: continue
     for peak in peak_list:
       segment = record[(peak - 2) * segment_len : (peak + 3) * segment_len].upper()
+      if len(segment) != segment_len * 5:
+        print(chrname, 'has error record', str(peak))
+        continue
       result.append((segment, peak_label_dict[peak]))
       
   return result
