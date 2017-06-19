@@ -90,6 +90,9 @@ ssh user@host "
 for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do ssh $sname "ps x | grep parse"; done
 # if use while, will exit when one shell is finished
 
+for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do ssh $sname "echo ${password} | sudo -S command"; done
+# sudo -S will read password from stdin, echo ${password} can give password to sudo command
+
 for i in `seq 2 22`; do 
   sort -k1 chr$i-label-*.txt > chr$i-label.txt; 
   [[ -e raw-label/chr2-label ]] || mkdir raw-label/chr$i-label; 
