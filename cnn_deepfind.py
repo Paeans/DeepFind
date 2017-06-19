@@ -209,17 +209,18 @@ def load_eval_data():
   #         tf.constant(np.array(label, dtype=np.float32))
 '''
 
-def main(unused_argv):
+def main(unused_argv, estimator_config = None):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
           model_dir=FLAGS.model_dir,
+          config = estimator_config,
           params={'learning_rate':0.001})
   
   # Set up logging for predictions
   # Log the values in the "logits" tensor with label "logits_results"
   tensors_to_log = {"logitresult": "logits_results"}
   logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=128)
+      tensors=tensors_to_log, every_n_iter=1000)
   # Train the model
   
   train_data_file = data_dir + '/' + train_file
@@ -270,10 +271,11 @@ def my_auc(labels, predictions, weights=None, num_thresholds=200,
   return tf.metrics.auc(labels[:, 1], predictions[:, 1], weights, num_thresholds, metrics_collections,
         updates_collections, curve, name)
         
-def eval(unused_argv):
+def eval(unused_argv, estimator_config = None):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn,
           model_dir=FLAGS.model_dir,
+          config = estimator_config,
           params={'learning_rate':0.001})
   
   # Configure the accuracy metric for evaluation
@@ -313,38 +315,11 @@ def test(unused_argv):
     server.join()
   elif FLAGS.job_name == "worker":
     run_config = learn.RunConfig(master = server.target)
-    gene_classifier = learn.Estimator(
-              model_fn = cnn_model_fn,
-              model_dir = FLAGS.model_dir,
-              config = run_config,
-              params={'learning_rate':0.001})
-    tensors_to_log = {"logitresult": "logits_results"}
-    logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=1000)
-    # Train the model
-    
-    train_data_file = data_dir + '/' + train_file
-    startline = 0
-    load_size = 128
-  
-  
-    train_data, train_labels = load_data_from_file(
-                                   train_data_file, 
-                                   startline = startline, 
-                                   endline = startline + load_size)
-    
-    print(train_data.shape, train_labels.shape)
-    
-    input_fn = numpy_io.numpy_input_fn(
-        {'train_data':train_data}, 
-        train_labels,
-        batch_size=FLAGS.batch_size,
-        shuffle=True,
-        num_epochs=FLAGS.num_epochs)
-    gene_classifier.fit(
-        input_fn=input_fn,
-        #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
-        monitors=[logging_hook])        
+    if FLAGS.work_type == 'train':
+      work_fun = main
+    elif FLAGS.work_type == 'eval':
+      work_fun = eval
+    work_fun(unused_argv, estimator_config = run_config)
   
   
   
@@ -437,14 +412,11 @@ regularization_penalty = tf.contrib.layers.apply_regularization(l1_regularizer, 
 
 regularized_loss = total_loss + regularization_penalty # this loss needs to be minimized
 train_step = tf.train.GradientDescentOptimizer(0.05).minimize(regularized_loss)
-'''
 
-'''
+
 input_fn = tf.contrib.learn.io.numpy_input_fn({"x":x}, y, batch_size=4,
                                               num_epochs=1000)
-'''
 
-'''
 regressor.fit(input_fn=lambda: input_fn(training_set), steps=5000)
 '''
 
