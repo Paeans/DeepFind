@@ -298,13 +298,55 @@ def eval(unused_argv):
   #print(prid_results.next()['logitresult'])
 
 def test(unused_argv):
-  gene_classifier = learn.Estimator(
-            model_fn = cnn_model_fn,
-            model_dir = FLAGS.model_dir,
-            params={'learning_rate':0.001})
-            
-  tf_config = learn.RunConfig()
-  print(tf_config)
+  ps_hosts = FLAGS.ps_hosts.split(",")
+  worker_hosts = FLAGS.worker_hosts.split(",")
+
+  # Create a cluster from the parameter server and worker hosts.
+  cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
+
+  # Create and start a server for the local task.
+  server = tf.train.Server(cluster,
+                           job_name=FLAGS.job_name,
+                           task_index=FLAGS.task_index)
+
+  if FLAGS.job_name == "ps":
+    server.join()
+  elif FLAGS.job_name == "worker":
+    run_config = learn.RunConfig(master = server.target)
+    gene_classifier = learn.Estimator(
+              model_fn = cnn_model_fn,
+              model_dir = FLAGS.model_dir,
+              config = run_config,
+              params={'learning_rate':0.001})
+    tensors_to_log = {"logitresult": "logits_results"}
+    logging_hook = tf.train.LoggingTensorHook(
+        tensors=tensors_to_log, every_n_iter=1000)
+    # Train the model
+    
+    train_data_file = data_dir + '/' + train_file
+    startline = 0
+    load_size = 128
+  
+  
+    train_data, train_labels = load_data_from_file(
+                                   train_data_file, 
+                                   startline = startline, 
+                                   endline = startline + load_size)
+    
+    print(train_data.shape, train_labels.shape)
+    
+    input_fn = numpy_io.numpy_input_fn(
+        {'train_data':train_data}, 
+        train_labels,
+        batch_size=FLAGS.batch_size,
+        shuffle=True,
+        num_epochs=FLAGS.num_epochs)
+    gene_classifier.fit(
+        input_fn=input_fn,
+        #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
+        monitors=[logging_hook])        
+  
+  
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -345,6 +387,31 @@ if __name__ == "__main__":
       type=str,
       default="INFO",
       help="Level to logging")
+  parser.add_argument(
+      "--ps_hosts",
+      type=str,
+      default="",
+      help="Comma-separated list of hostname:port pairs"
+  )
+  parser.add_argument(
+      "--worker_hosts",
+      type=str,
+      default="",
+      help="Comma-separated list of hostname:port pairs"
+  )
+  parser.add_argument(
+      "--job_name",
+      type=str,
+      default="",
+      help="One of 'ps', 'worker'"
+  )
+  # Flags for defining the tf.train.Server
+  parser.add_argument(
+      "--task_index",
+      type=int,
+      default=0,
+      help="Index of task within the job"
+  )
   FLAGS, unparsed = parser.parse_known_args()
   
   log_level = FLAGS.log_level
