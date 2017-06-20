@@ -122,3 +122,11 @@ ssh -i /home/pangaofeng/.ssh/id_rsa -f pangaofeng@localhost -L 0.0.0.0:200$i:sla
 
 ${tmp:+,${tmp},}
 # add ',' at the begin and end of tmp
+
+for i in `seq 1 20`;
+do
+  tmp=0${i}
+  tmp=${tmp: -2}
+  echo $tmp
+done #generate a list of number have 2 digits, 
+     #if not long enough, add 0 at the begin
