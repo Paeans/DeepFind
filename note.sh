@@ -119,3 +119,6 @@ END
 
 # create tunnel using ssh, then connect to remote host by through different port
 ssh -i /home/pangaofeng/.ssh/id_rsa -f pangaofeng@localhost -L 0.0.0.0:200$i:slave0$i:22 -N
+
+${tmp:+,${tmp},}
+# add ',' at the begin and end of tmp
