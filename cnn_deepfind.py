@@ -7,6 +7,7 @@ import sys
 import argparse
 
 import gzip
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -113,50 +114,33 @@ def cnn_model_fn(features, labels, mode, params):
   
   loss = None
   train_op = None
-
-  # Calculate Loss (for both TRAIN and EVAL modes)
-  if mode != learn.ModeKeys.INFER:
-    #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
-    print(labels, logits)
-    loss = tf.losses.sigmoid_cross_entropy(
-        multi_class_labels=labels, logits=logits)
   
-  # Configure the Training Op (for TRAIN mode)
-  if mode == learn.ModeKeys.TRAIN:
-    train_op = layers.optimize_loss(
-        loss=loss,
-        global_step=tf.contrib.framework.get_global_step(),
-        learning_rate=params['learning_rate'], #0.001,
-        optimizer="SGD")
-
-  # Generate Predictions
   
-  predictions = {
-      "logitresult": logits
-  }#Generate predictions_key_list, 1:918
+    # Calculate Loss (for both TRAIN and EVAL modes)
+    if mode != learn.ModeKeys.INFER:
+      #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+      print(labels, logits)
+      loss = tf.losses.sigmoid_cross_entropy(
+          multi_class_labels=labels, logits=logits)
+    
+    # Configure the Training Op (for TRAIN mode)
+    if mode == learn.ModeKeys.TRAIN:
+      train_op = layers.optimize_loss(
+          loss=loss,
+          global_step=tf.contrib.framework.get_global_step(),
+          learning_rate=params['learning_rate'], #0.001,
+          optimizer="Adagrad") #"SGD""Adagrad"
+
+    # Generate Predictions
+    
+    predictions = {
+        "logitresult": logits
+    }#Generate predictions_key_list, 1:918
 
   # Return a ModelFnOps object
   return model_fn_lib.ModelFnOps(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
-'''
-def load_train_data():
-  #gene_train_feature = json.load(open(FLAGS.train_data, 'r'))
-  #gene_train_label = json.load(open(FLAGS.train_label, 'r'))
-  
-  gene_train_feature = encode_gene(FLAGS.train_data)
-  gene_train_label = encode_label(FLAGS.train_label)
-  train_data, train_label = [], []
-  for key in gene_train_feature.keys():
-    if not key in gene_train_label: continue
-    if np.random.rand() < 0.8: continue
-    train_data.append(gene_train_feature[key])
-    train_label.append(gene_train_label[key])
-  return np.array(train_data, dtype=np.float32), \
-            np.array(train_label, dtype=np.float32)
-  #return tf.constant(np.array(data, dtype=np.float32)), \
-  #         tf.constant(np.array(label, dtype=np.float32))
-''' 
 
 def load_data_from_file(filename, startline, endline, multi = 1024):
   
@@ -193,28 +177,14 @@ def load_data_from_file(filename, startline, endline, multi = 1024):
   return np.array(data, dtype = np.float32), \
           np.array(target, dtype = np.float32)
   
-'''  
-def load_eval_data():
-  gene_eval_feature = encode_gene(FLAGS.eval_data)
-  gene_eval_label = encode_label(FLAGS.eval_label)
-  
-  eval_data, eval_label = [], []
-  for key in gene_eval_feature.keys():
-    if not key in gene_eval_label: continue    
-    eval_data.append(gene_eval_feature[key])
-    eval_label.append(gene_eval_label[key])
-  return np.array(eval_data, dtype=np.float32), \
-           np.array(eval_label, dtype=np.float32)
-  #return tf.constant(np.array(data, dtype=np.float32)), \
-  #         tf.constant(np.array(label, dtype=np.float32))
-'''
 
-def main(unused_argv, estimator_config = None):
+def main(unused_argv, estimator_config = None, cluster = None):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
           model_dir=FLAGS.model_dir,
           config = estimator_config,
-          params={'learning_rate':0.001})
+          params={'learning_rate':0.001,
+                  'cluster':cluster})
   
   # Set up logging for predictions
   # Log the values in the "logits" tensor with label "logits_results"
@@ -224,10 +194,12 @@ def main(unused_argv, estimator_config = None):
   # Train the model
   
   train_data_file = data_dir + '/' + train_file
-  startline = 0
-  load_size = 128
+  startline = FLAGS.startline
+  endline = FLAGS.endline
+  load_size = 100
   
   while True:
+    if startline > endline: break
     train_data, train_labels = load_data_from_file(
                                    train_data_file, 
                                    startline = startline, 
@@ -243,22 +215,14 @@ def main(unused_argv, estimator_config = None):
         batch_size=FLAGS.batch_size,
         shuffle=True,
         num_epochs=FLAGS.num_epochs)
-    '''
-    gene_classifier.fit(
-        #input_fn=load_train_data,
-        x=train_data,
-        y=train_labels,
-        batch_size=FLAGS.batch_size,
-        steps=train_data.shape[0] / FLAGS.batch_size * FLAGS.num_epochs,  #sizeofdata/batchsize * epoch
-        monitors=[logging_hook])
-    '''    
+    
     gene_classifier.fit(
         input_fn=input_fn,
         #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
         monitors=[logging_hook])
     
     startline = startline + load_size
-    print('Finish sub task training')
+    print('Finish sub task training:', startline)
     sys.stdout.flush()
   print("Finish training")
 
@@ -271,12 +235,12 @@ def my_auc(labels, predictions, weights=None, num_thresholds=200,
   return tf.metrics.auc(labels[:, 1], predictions[:, 1], weights, num_thresholds, metrics_collections,
         updates_collections, curve, name)
         
-def eval(unused_argv, estimator_config = None):
+def eval(unused_argv, estimator_config = None, cluster = None):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn,
           model_dir=FLAGS.model_dir,
           config = estimator_config,
-          params={'learning_rate':0.001})
+          params = {'cluster':cluster})
   
   # Configure the accuracy metric for evaluation
   metrics = {
@@ -299,13 +263,19 @@ def eval(unused_argv, estimator_config = None):
   #    x=eval_data, batch_size = 10)
   #print(prid_results.next()['logitresult'])
 
-def test(unused_argv):
+def dtrain(unused_argv):
   ps_hosts = FLAGS.ps_hosts.split(",")
   worker_hosts = FLAGS.worker_hosts.split(",")
-
+  
+  cluster_dict = {'ps': ps_hosts,
+                 'worker': worker_hosts}
   # Create a cluster from the parameter server and worker hosts.
   cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
-
+  
+  os.environ['TF_CONFIG'] = json.dumps(
+            {'cluster': cluster_dict,
+             'task': {'type': FLAGS.job_name, 'index': FLAGS.task_index}})
+  
   # Create and start a server for the local task.
   server = tf.train.Server(cluster,
                            job_name=FLAGS.job_name,
@@ -314,22 +284,28 @@ def test(unused_argv):
   if FLAGS.job_name == "ps":
     server.join()
   elif FLAGS.job_name == "worker":
-    run_config = learn.RunConfig(master = server.target)
-    if FLAGS.work_type == 'train':
+    with tf.device(tf.train.replica_device_setter(
+    worker_device = "/job:worker/task:%d" % FLAGS.task_index,
+    cluster = cluster)):
+      run_config = learn.RunConfig(master = server.target)
       work_fun = main
-    elif FLAGS.work_type == 'eval':
-      work_fun = eval
-    work_fun(unused_argv, estimator_config = run_config)
+      if FLAGS.work_type == 'train':
+        work_fun = main
+      elif FLAGS.work_type == 'eval':
+        work_fun = eval
+      work_fun(unused_argv, estimator_config = run_config, cluster = cluster)
   
   
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
-  parser.add_argument("--batch_size", type=int, default=128, help="Size of batch fit to model")
-  parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
-  parser.add_argument("--num_epochs", type=int, default=2, help="Number of epochs to fit the model")
+  parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
+  #parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
+  parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to fit the model")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
+  parser.add_argument("--startline", type=int, default=0, help="The start position of work in the data file")
+  parser.add_argument("--endline", type=int, default=sys.maxint, help="The end position of work in the data file")
   '''
   parser.add_argument(
       "--train_data", type=str, default="chr21", help="Path to the training data.")
@@ -399,8 +375,8 @@ if __name__ == "__main__":
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
   elif FLAGS.work_type == 'eval':
     tf.app.run(main=eval, argv=[sys.argv[0]] + unparsed)
-  elif FLAGS.work_type == 'test':
-    tf.app.run(main=test, argv=[sys.argv[0]] + unparsed)
+  elif FLAGS.work_type == 'dtrain':
+    tf.app.run(main=dtrain, argv=[sys.argv[0]] + unparsed)
   
 '''
 total_loss = meansq #or other loss calcuation
