@@ -116,26 +116,26 @@ def cnn_model_fn(features, labels, mode, params):
   train_op = None
   
   
-    # Calculate Loss (for both TRAIN and EVAL modes)
-    if mode != learn.ModeKeys.INFER:
-      #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
-      print(labels, logits)
-      loss = tf.losses.sigmoid_cross_entropy(
-          multi_class_labels=labels, logits=logits)
-    
-    # Configure the Training Op (for TRAIN mode)
-    if mode == learn.ModeKeys.TRAIN:
-      train_op = layers.optimize_loss(
-          loss=loss,
-          global_step=tf.contrib.framework.get_global_step(),
-          learning_rate=params['learning_rate'], #0.001,
-          optimizer="Adagrad") #"SGD""Adagrad"
+  # Calculate Loss (for both TRAIN and EVAL modes)
+  if mode != learn.ModeKeys.INFER:
+    #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
+    print(labels, logits)
+    loss = tf.losses.sigmoid_cross_entropy(
+        multi_class_labels=labels, logits=logits)
+  
+  # Configure the Training Op (for TRAIN mode)
+  if mode == learn.ModeKeys.TRAIN:
+    train_op = layers.optimize_loss(
+        loss=loss,
+        global_step=tf.contrib.framework.get_global_step(),
+        learning_rate=params['learning_rate'], #0.001,
+        optimizer="Adagrad") #"SGD""Adagrad"
 
-    # Generate Predictions
-    
-    predictions = {
-        "logitresult": logits
-    }#Generate predictions_key_list, 1:918
+  # Generate Predictions
+  
+  predictions = {
+      "logitresult": logits
+  }#Generate predictions_key_list, 1:918
 
   # Return a ModelFnOps object
   return model_fn_lib.ModelFnOps(
@@ -178,13 +178,11 @@ def load_data_from_file(filename, startline, endline, multi = 1024):
           np.array(target, dtype = np.float32)
   
 
-def main(unused_argv, estimator_config = None, cluster = None):
+def main(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
           model_dir=FLAGS.model_dir,
-          config = estimator_config,
-          params={'learning_rate':0.001,
-                  'cluster':cluster})
+          params={'learning_rate':0.001})
   
   # Set up logging for predictions
   # Log the values in the "logits" tensor with label "logits_results"
@@ -235,12 +233,10 @@ def my_auc(labels, predictions, weights=None, num_thresholds=200,
   return tf.metrics.auc(labels[:, 1], predictions[:, 1], weights, num_thresholds, metrics_collections,
         updates_collections, curve, name)
         
-def eval(unused_argv, estimator_config = None, cluster = None):
+def eval(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn,
-          model_dir=FLAGS.model_dir,
-          config = estimator_config,
-          params = {'cluster':cluster})
+          model_dir=FLAGS.model_dir)
   
   # Configure the accuracy metric for evaluation
   metrics = {
@@ -284,16 +280,16 @@ def dtrain(unused_argv):
   if FLAGS.job_name == "ps":
     server.join()
   elif FLAGS.job_name == "worker":
-    with tf.device(tf.train.replica_device_setter(
-    worker_device = "/job:worker/task:%d" % FLAGS.task_index,
-    cluster = cluster)):
-      run_config = learn.RunConfig(master = server.target)
+    #with tf.device(tf.train.replica_device_setter(
+    #worker_device = "/job:worker/task:%d" % FLAGS.task_index,
+    #cluster = cluster)):
+    #  run_config = learn.RunConfig(master = server.target)
+    work_fun = main
+    if FLAGS.work_type == 'train':
       work_fun = main
-      if FLAGS.work_type == 'train':
-        work_fun = main
-      elif FLAGS.work_type == 'eval':
-        work_fun = eval
-      work_fun(unused_argv, estimator_config = run_config, cluster = cluster)
+    elif FLAGS.work_type == 'eval':
+      work_fun = eval
+    work_fun(unused_argv)
   
   
   
