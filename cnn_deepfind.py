@@ -129,7 +129,13 @@ def cnn_model_fn(features, labels, mode, params):
         loss=loss,
         global_step=tf.contrib.framework.get_global_step(),
         learning_rate=params['learning_rate'], #0.001,
-        optimizer="Adagrad") #"SGD""Adagrad"
+        optimizer=FLAGS.train_algm) #"SGD""Adagrad"
+    #"Adagrad": train.AdagradOptimizer,
+    #"Adam": train.AdamOptimizer,
+    #"Ftrl": train.FtrlOptimizer,
+    #"Momentum": train.MomentumOptimizer,
+    #"RMSProp": train.RMSPropOptimizer,
+    #"SGD": train.GradientDescentOptimizer,
 
   # Generate Predictions
   
@@ -142,7 +148,7 @@ def cnn_model_fn(features, labels, mode, params):
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
 
-def load_data_from_file(filename, startline, endline, multi = 1024):
+def load_data_from_file(filename, startline, endline, multi = 1000):
   
   if not os.path.isfile(filename):
     print('ERROR:', filename, 'not exist')
@@ -182,14 +188,7 @@ def main(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
           model_dir=FLAGS.model_dir,
-          params={'learning_rate':0.001})
-  
-  # Set up logging for predictions
-  # Log the values in the "logits" tensor with label "logits_results"
-  tensors_to_log = {"logitresult": "logits_results"}
-  logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=1000)
-  # Train the model
+          params={'learning_rate':FLAGS.learning_rate})
   
   train_data_file = data_dir + '/' + train_file
   startline = FLAGS.startline
@@ -206,7 +205,6 @@ def main(unused_argv):
     print(train_data.shape, train_labels.shape)
     if train_data.shape[0] == 0: break
     
-    
     input_fn = numpy_io.numpy_input_fn(
         {'train_data':train_data}, 
         train_labels,
@@ -214,6 +212,13 @@ def main(unused_argv):
         shuffle=True,
         num_epochs=FLAGS.num_epochs)
     
+    # Set up logging for predictions
+    # Log the values in the "logits" tensor with label "logits_results"
+    tensors_to_log = {"logitresult": "logits_results"}
+    logging_hook = tf.train.LoggingTensorHook(
+        tensors=tensors_to_log, every_n_iter=1000)
+    # Train the model
+  
     gene_classifier.fit(
         input_fn=input_fn,
         #steps=FLAGS.steps_size,  #sizeofdata/batchsize * epoch
@@ -227,11 +232,13 @@ def main(unused_argv):
 def my_auc(labels, predictions, weights=None, num_thresholds=200,
         metrics_collections=None, updates_collections=None,
         curve='ROC', name=None):
-  print('shape of label: ', labels.get_shape().ndims, 'shape of predictions: ', predictions.get_shape().ndims)
+  print('shape of label: ', labels.get_shape().ndims, 
+      'shape of predictions: ', predictions.get_shape().ndims)
   #return tf.metrics.auc(labels, predictions, weights, num_thresholds, metrics_collections,
   #      updates_collections, curve, name)
-  return tf.metrics.auc(labels[:, 1], predictions[:, 1], weights, num_thresholds, metrics_collections,
-        updates_collections, curve, name)
+  return tf.metrics.auc(labels[:, 1], predictions[:, 1], 
+              weights, num_thresholds, metrics_collections,
+              updates_collections, curve, name)
         
 def eval(unused_argv):
   gene_classifier = learn.Estimator(
@@ -299,6 +306,8 @@ if __name__ == "__main__":
   parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
   #parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to fit the model")
+  parser.add_argument("--learning_rate", type=float, default=0.001, help="Number of epochs to fit the model")
+  parser.add_argument("--train_algm", type=str, default='SGD', help="Number of epochs to fit the model")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
   parser.add_argument("--startline", type=int, default=0, help="The start position of work in the data file")
   parser.add_argument("--endline", type=int, default=sys.maxint, help="The end position of work in the data file")
