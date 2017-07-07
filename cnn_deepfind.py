@@ -12,6 +12,8 @@ import json
 import numpy as np
 import tensorflow as tf
 
+from sklearn import metrics
+
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
 from tensorflow.contrib.learn import io as numpy_io
@@ -33,10 +35,10 @@ data_dir = '../share/label'
 train_file = 'train_data.gz'
 test_file = 'test_data.gz'
 
-model_regular = layers.sum_regularizer(
-        [tf.contrib.layers.l1_regularizer(1e-08),
-         tf.contrib.layers.l2_regularizer(5e-07)])
-
+#model_regular = layers.sum_regularizer(
+#        [tf.contrib.layers.l1_regularizer(1e-08),
+#         tf.contrib.layers.l2_regularizer(5e-07)])
+model_regular = layers.sum_regularizer([tf.contrib.layers.l2_regularizer(5e-07)])
 
 def cnn_model_fn(features, labels, mode, params):
   print(features, labels)  
@@ -108,7 +110,7 @@ def cnn_model_fn(features, labels, mode, params):
       inputs=full_connect1,
       num_outputs=out_unit,
       activation_fn=None,
-      weights_regularizer=model_regular)
+      weights_regularizer=tf.contrib.layers.l1_regularizer(1e-08))
       
   logits = tf.sigmoid(full_connect2, name='logits_results')
   
@@ -125,10 +127,13 @@ def cnn_model_fn(features, labels, mode, params):
   
   # Configure the Training Op (for TRAIN mode)
   if mode == learn.ModeKeys.TRAIN:
+    global_step = tf.contrib.framework.get_global_step()
+    learning_rate = tf.train.exponential_decay(params['learning_rate'], global_step,
+                                           100, 0.99, staircase=True)
     train_op = layers.optimize_loss(
         loss=loss,
-        global_step=tf.contrib.framework.get_global_step(),
-        learning_rate=params['learning_rate'], #0.001,
+        global_step=global_step,
+        learning_rate=learning_rate, #0.001,
         optimizer=FLAGS.train_algm) #"SGD""Adagrad"
     #"Adagrad": train.AdagradOptimizer,
     #"Adam": train.AdamOptimizer,
@@ -139,9 +144,10 @@ def cnn_model_fn(features, labels, mode, params):
 
   # Generate Predictions
   
-  predictions = {
-      "logitresult": logits
-  }#Generate predictions_key_list, 1:918
+  predictions = logits
+  #{
+  #    "logitresult": logits
+  #}#Generate predictions_key_list, 1:918
 
   # Return a ModelFnOps object
   return model_fn_lib.ModelFnOps(
@@ -162,7 +168,7 @@ def load_data_from_file(filename, startline, endline, multi = 1000):
     for line in data_file:
       counter += 1
       if counter <= startline * multi: continue
-      if counter > endline * multi: break
+      if counter >  endline * multi: break
       
       segment, label = line.strip().split()
       if len(segment) != segment_len:
@@ -209,7 +215,7 @@ def main(unused_argv):
         {'train_data':train_data}, 
         train_labels,
         batch_size=FLAGS.batch_size,
-        shuffle=True,
+        shuffle=False,
         num_epochs=FLAGS.num_epochs)
     
     # Set up logging for predictions
@@ -229,6 +235,40 @@ def main(unused_argv):
     sys.stdout.flush()
   print("Finish training")
 
+def pred(unused_argv):
+  print("Prediction")
+  gene_classifier = learn.Estimator(
+          model_fn=cnn_model_fn, 
+          model_dir=FLAGS.model_dir,
+          params={'learning_rate':FLAGS.learning_rate})
+  
+  train_data_file = data_dir + '/' + test_file
+  
+  train_data, train_labels = load_data_from_file(
+                                 train_data_file, 
+                                 startline = FLAGS.startline, 
+                                 endline = FLAGS.endline)
+  
+  
+  input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data[20]}, shuffle=False)
+  pred_result = gene_classifier.predict(input_fn = input_fn)
+  shape = train_labels.shape
+  print(shape)
+  result = []
+  for res in pred_result:
+    result.append(res)
+  print(len(result))
+  result = np.array(result)
+  print(' '.join([str(x) for x in train_labels[20, :]]))
+  print(' '.join([str(x) for x in result[0, :]]))
+  # auc_result = []
+  # for i in range(shape[1]):
+    # if max(train_labels[:, i]) < 1: continue
+    # auc_score = metrics.roc_auc_score(train_labels[:, i], result[:, i])
+    # auc_result.append(auc_score)
+  # print(' '.join([str(x) for x in auc_result]))
+   
+  
 def my_auc(labels, predictions, weights=None, num_thresholds=200,
         metrics_collections=None, updates_collections=None,
         curve='ROC', name=None):
@@ -304,25 +344,12 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
-  #parser.add_argument("--steps_size", type=int, default=100000, help="Size of batch fit to model")
-  parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs to fit the model")
-  parser.add_argument("--learning_rate", type=float, default=0.001, help="Number of epochs to fit the model")
-  parser.add_argument("--train_algm", type=str, default='SGD', help="Number of epochs to fit the model")
+  parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs to fit the model")
+  parser.add_argument("--learning_rate", type=float, default=1.0, help="Learning rate")
+  parser.add_argument("--train_algm", type=str, default='Adagrad', help="Algorithms used to train")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
   parser.add_argument("--startline", type=int, default=0, help="The start position of work in the data file")
   parser.add_argument("--endline", type=int, default=sys.maxint, help="The end position of work in the data file")
-  '''
-  parser.add_argument(
-      "--train_data", type=str, default="chr21", help="Path to the training data.")
-  parser.add_argument(
-      "--train_label", type=str, default="chr21", help="Path to the training data.")
-  parser.add_argument(
-      "--eval_data", type=str, default="chr22", help="Path to the training data.")
-  parser.add_argument(
-      "--eval_label", type=str, default="chr22", help="Path to the training data.")
-  parser.add_argument(
-      "--test_data", type=str, default="", help="Path to the test data.")
-  '''
   parser.add_argument(
       "--predict_data",
       type=str,
@@ -331,7 +358,7 @@ if __name__ == "__main__":
   parser.add_argument(
       "--model_dir",
       type=str,
-      default="/tmp/gene_deep_finding",
+      default="/home/pangaofeng/gene_deep_finding",
       help="Path to the dirctory store model data")
   parser.add_argument(
       "--log_dir",
@@ -375,13 +402,16 @@ if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.INFO)
   elif log_level == 'ERROR' or log_level == 'error':
     tf.logging.set_verbosity(tf.logging.ERROR)
-  
+  work_fun = main
   if FLAGS.work_type == 'train':
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
-  elif FLAGS.work_type == 'eval':
-    tf.app.run(main=eval, argv=[sys.argv[0]] + unparsed)
+    work_fun = main
+  elif FLAGS.work_type == 'evaluate':
+    work_fun = eval
   elif FLAGS.work_type == 'dtrain':
-    tf.app.run(main=dtrain, argv=[sys.argv[0]] + unparsed)
+    work_fun = dtrain
+  elif FLAGS.work_type == 'predict':
+    work_fun = pred
+  tf.app.run(main=work_fun, argv=[sys.argv[0]] + unparsed)
   
 '''
 total_loss = meansq #or other loss calcuation
