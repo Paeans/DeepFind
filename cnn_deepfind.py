@@ -32,7 +32,7 @@ segment_len = 1000
 feature_len = 918
 
 data_dir = '../share/label'
-train_file = 'train_data.gz'
+train_file = 'chr1_data.gz'
 test_file = 'test_data.gz'
 
 #model_regular = layers.sum_regularizer(
