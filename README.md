@@ -16,8 +16,7 @@ Files in create_raw_label directory used to generate peak name and corresponding
 
 ##  **1.1. Usage**
    
-  ```
-  
+    
   parse_chr_peak.sh chr[1-22|X|Y] start_peak end_peak
     
   chr[1-22|X|Y]   : the name of chromesome to analysis
@@ -26,7 +25,7 @@ Files in create_raw_label directory used to generate peak name and corresponding
 
   end_peak        : the end index of peak
   
-  ```
+  
   
 ##  **1.2. Result**
     
