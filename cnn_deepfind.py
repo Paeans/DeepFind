@@ -9,6 +9,7 @@ import argparse
 import gzip
 import json
 
+import h5py
 import numpy as np
 import tensorflow as tf
 
@@ -26,14 +27,14 @@ from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_f
 FLAGS = None
 
 kernel_num = [320, 480, 960]
-out_unit = 918
+out_unit = 919
 
 segment_len = 1000
-feature_len = 918
+feature_len = 919
 
 data_dir = '../share/label'
-train_file = 'chr1_data.gz'
-test_file = 'test_data.gz'
+train_file = 'train.mat'
+test_file = 'test.mat'
 
 #model_regular = layers.sum_regularizer(
 #        [tf.contrib.layers.l1_regularizer(1e-08),
@@ -52,7 +53,7 @@ def cnn_model_fn(features, labels, mode, params):
   conv1 = layers.conv2d(
       inputs=input_layer,
       num_outputs=kernel_num[0],
-      kernel_size=[4, 8],
+      kernel_size=[1, 8],
       stride=1,
       padding="VALID",
       activation_fn=tf.nn.relu,
@@ -104,7 +105,8 @@ def cnn_model_fn(features, labels, mode, params):
   full_connect1 = layers.fully_connected(
       inputs=level3_flat,
       num_outputs=out_unit,
-      weights_regularizer=model_regular)
+      weights_regularizer=model_regular
+      )
 
   full_connect2 = layers.fully_connected(
       inputs=full_connect1,
@@ -154,7 +156,7 @@ def cnn_model_fn(features, labels, mode, params):
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
 
-def load_data_from_file(filename, startline, endline, multi = 1000):
+def load_data_from_file_old(filename, startline, endline, multi = 1000):
   
   if not os.path.isfile(filename):
     print('ERROR:', filename, 'not exist')
@@ -188,6 +190,22 @@ def load_data_from_file(filename, startline, endline, multi = 1000):
       
   return np.array(data, dtype = np.float32), \
           np.array(target, dtype = np.float32)
+          
+def load_data_from_file(filename, startline, endline, multi = 1000):
+  
+  if not os.path.isfile(filename):
+    print('ERROR:', filename, 'not exist')
+    return None, None
+  
+  datafile = h5py.File(filename, 'r')
+  h5_label = datafile['traindata']
+  h5_data = datafile['trainxdata']
+  
+  target = h5_label[:,startline * multi : endline * multi]
+  data = h5_data[:,:,startline * multi : endline * multi]
+  
+  return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
+          np.transpose(target, (1,0)).astype(dtype = np.float32)
   
 
 def main(unused_argv):
