@@ -16,7 +16,7 @@ Files in create_raw_label directory used to generate peak name and corresponding
 
 ##  **1.1. Usage**
    
-  ```Shell
+  ```
   
   parse_chr_peak.sh chr[1-22|X|Y] start_peak end_peak
     
