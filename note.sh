@@ -130,3 +130,5 @@ do
   echo $tmp
 done #generate a list of number have 2 digits, 
      #if not long enough, add 0 at the begin
+
+for i in `for t in \`seq 1 5\`; do echo S$t;done`;do echo $i; done
