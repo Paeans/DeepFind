@@ -120,6 +120,19 @@ END
 # create tunnel using ssh, then connect to remote host by through different port
 ssh -i /home/pangaofeng/.ssh/id_rsa -f pangaofeng@localhost -L 0.0.0.0:200$i:slave0$i:22 -N
 
+for i in `seq 1 11`;
+do
+  tmp=0${i}
+  ssh -i /home/pangaofeng/.ssh/id_rsa -f pangaofeng@localhost -L 0.0.0.0:20${tmp: -2}:slave${tmp: -2}:22 -N
+done
+
+## for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`;
+## do
+##   echo $sname ${sname: -2};
+##   ssh -i /home/pangaofeng/.ssh/id_rsa -f pangaofeng@localhost -L 0.0.0.0:20${sname: -2}:${sname}:22 -N
+## done
+
+
 ${tmp:+,${tmp},}
 # add ',' at the begin and end of tmp
 
