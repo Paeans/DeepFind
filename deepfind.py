@@ -6,9 +6,6 @@ import os
 import sys
 import argparse
 
-import gzip
-import json
-
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -20,10 +17,6 @@ from tensorflow.contrib import layers
 from tensorflow.contrib.learn import io as numpy_io
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
 
-#from gene_encoder import encode_gene
-#from label_encoder import encode_label
-
-
 FLAGS = None
 
 kernel_num = [320, 480, 960]
@@ -34,7 +27,7 @@ feature_len = 919
 
 data_dir = '../label'
 train_file = 'train.mat'
-test_file = 'test.mat'
+test_file = 'testn.mat'
 
 #model_regular = layers.sum_regularizer(
 #        [tf.contrib.layers.l1_regularizer(1e-08),
@@ -44,7 +37,7 @@ model_regular = layers.sum_regularizer([tf.contrib.layers.l2_regularizer(5e-07)]
 def cnn_model_fn(features, labels, mode, params):
   print(features, labels)  
   input_layer = tf.reshape(features['train_data'], [-1, 4, 1000, 1])
-
+  
   # Convolutional Layer #1
   # Computes 32 features using a 5x5 filter with ReLU activation.
   # Padding is added to preserve width and height.
@@ -66,7 +59,7 @@ def cnn_model_fn(features, labels, mode, params):
   # Output Tensor Shape: [batch_size, 1, 250, 320]
   pool1 = layers.max_pool2d(inputs=conv1, kernel_size=[1, 4], stride=[1, 4], padding='VALID')
   level1 = layers.dropout(inputs=pool1, keep_prob=0.8)
-  
+
   # Convolutional Layer #2
   # Computes 64 features using a 5x5 filter.
   # Padding is added to preserve width and height.
@@ -87,7 +80,7 @@ def cnn_model_fn(features, labels, mode, params):
   # Output Tensor Shape: [batch_size, 1, 125, 64]
   pool2 = layers.max_pool2d(inputs=conv2, kernel_size=[1, 4], stride=[1, 4], padding='VALID')
   level2 = layers.dropout(inputs=pool2, keep_prob=0.8)
-  
+
   conv3 = layers.conv2d(
       inputs=level2,
       num_outputs=kernel_num[2],
@@ -96,12 +89,12 @@ def cnn_model_fn(features, labels, mode, params):
       padding="VALID",
       activation_fn=tf.nn.relu,
       weights_regularizer=model_regular)
-  
+
   level3 = layers.dropout(inputs=conv3, keep_prob=0.5)
-  
+
   # Flatten tensor into a batch of vectors
   level3_flat = layers.flatten(level3)
-  
+
   full_connect1 = layers.fully_connected(
       inputs=level3_flat,
       num_outputs=out_unit,
@@ -155,42 +148,6 @@ def cnn_model_fn(features, labels, mode, params):
   return model_fn_lib.ModelFnOps(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
-
-def load_data_from_file_old(filename, startline, endline, multi = 1000):
-  
-  if not os.path.isfile(filename):
-    print('ERROR:', filename, 'not exist')
-    return None, None
-    
-  data, target = [], []
-  vDict = {'A':0, 'T':1, 'C':2, 'G':3}
-  
-  with gzip.open(filename, 'r') as data_file:
-    counter = 0
-    for line in data_file:
-      counter += 1
-      if counter <= startline * multi: continue
-      if counter >  endline * multi: break
-      
-      segment, label = line.strip().split()
-      if len(segment) != segment_len:
-        print('ERROR:', segment, 'length is not', segment_len)
-        continue
-      if len(label) != feature_len:
-        print('ERROR:', label, 'length is not', feature_len)
-        continue
-        
-      tmp_matrix = np.zeros((4, segment_len))
-      for i in range(segment_len):
-        if segment[i] not in vDict: continue
-        tmp_matrix[vDict[segment[i]], i] = 1
-      data.append(tmp_matrix)
-      
-      target.append(np.array([int(x) for x in label]))
-      
-  return np.array(data, dtype = np.float32), \
-          np.array(target, dtype = np.float32)
-          
 def load_data_from_file(filename, startline, endline, multi = 1000):
   
   if not os.path.isfile(filename):
@@ -207,7 +164,23 @@ def load_data_from_file(filename, startline, endline, multi = 1000):
   return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
           np.transpose(target, (1,0)).astype(dtype = np.float32)
   
-
+def load_test_from_file(filename, startline, endline, multi = 1000):
+  
+  if not os.path.isfile(filename):
+    print('ERROR:', filename, 'not exist')
+    return None, None
+  
+  datafile = h5py.File(filename, 'r')
+  h5_label = datafile['testdata']
+  h5_data = datafile['testxdata']
+  
+  target = h5_label[:,startline * multi : endline * multi]
+  data = h5_data[:,:,startline * multi : endline * multi]
+  
+  return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
+          np.transpose(target, (1,0)).astype(dtype = np.float32)
+  
+  
 def main(unused_argv):
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
@@ -240,7 +213,7 @@ def main(unused_argv):
     # Log the values in the "logits" tensor with label "logits_results"
     tensors_to_log = {"logitresult": "logits_results"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=1000)
+        tensors=tensors_to_log, every_n_iter=10000)
     # Train the model
   
     gene_classifier.fit(
@@ -256,19 +229,19 @@ def main(unused_argv):
 def pred(unused_argv):
   print("Prediction")
   gene_classifier = learn.Estimator(
-          model_fn=cnn_model_fn, 
-          model_dir=FLAGS.model_dir,
-          params={'learning_rate':FLAGS.learning_rate})
-  
+        model_fn=cnn_model_fn, 
+        model_dir=FLAGS.model_dir,
+        params={'learning_rate':FLAGS.learning_rate})
+
   train_data_file = data_dir + '/' + test_file
   
-  train_data, train_labels = load_data_from_file(
+  train_data, train_labels = load_test_from_file(
                                  train_data_file, 
                                  startline = FLAGS.startline, 
                                  endline = FLAGS.endline)
   
   
-  input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data[20]}, shuffle=False)
+  input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data}, shuffle=False)
   pred_result = gene_classifier.predict(input_fn = input_fn)
   shape = train_labels.shape
   print(shape)
@@ -277,91 +250,19 @@ def pred(unused_argv):
     result.append(res)
   print(len(result))
   result = np.array(result)
-  print(' '.join([str(x) for x in train_labels[20, :]]))
-  print(' '.join([str(x) for x in result[0, :]]))
-  # auc_result = []
-  # for i in range(shape[1]):
-    # if max(train_labels[:, i]) < 1: continue
-    # auc_score = metrics.roc_auc_score(train_labels[:, i], result[:, i])
-    # auc_result.append(auc_score)
-  # print(' '.join([str(x) for x in auc_result]))
-   
-  
-def my_auc(labels, predictions, weights=None, num_thresholds=200,
-        metrics_collections=None, updates_collections=None,
-        curve='ROC', name=None):
-  print('shape of label: ', labels.get_shape().ndims, 
-      'shape of predictions: ', predictions.get_shape().ndims)
-  #return tf.metrics.auc(labels, predictions, weights, num_thresholds, metrics_collections,
-  #      updates_collections, curve, name)
-  return tf.metrics.auc(labels[:, 1], predictions[:, 1], 
-              weights, num_thresholds, metrics_collections,
-              updates_collections, curve, name)
-        
-def eval(unused_argv):
-  gene_classifier = learn.Estimator(
-          model_fn=cnn_model_fn,
-          model_dir=FLAGS.model_dir)
-  
-  # Configure the accuracy metric for evaluation
-  metrics = {
-      "auc":
-          learn.MetricSpec(
-              metric_fn=my_auc, prediction_key="logitresult"),
-  }   #checkpoint_path
-
-  # Evaluate the model and print results
-  test_data_file = data_dir + '/' + test_file
-  eval_data, eval_labels = load_data_from_file(test_data_file)
-  
-  print(eval_data.shape, eval_labels.shape)
-  eval_results = gene_classifier.evaluate(
-      x=eval_data, y=eval_labels, metrics=metrics)
-      #batch_size=10000, steps=1, 
-  print('evaluate results: ', eval_results)
-  
-  #prid_results = gene_classifier.predict(
-  #    x=eval_data, batch_size = 10)
-  #print(prid_results.next()['logitresult'])
-
-def dtrain(unused_argv):
-  ps_hosts = FLAGS.ps_hosts.split(",")
-  worker_hosts = FLAGS.worker_hosts.split(",")
-  
-  cluster_dict = {'ps': ps_hosts,
-                 'worker': worker_hosts}
-  # Create a cluster from the parameter server and worker hosts.
-  cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
-  
-  os.environ['TF_CONFIG'] = json.dumps(
-            {'cluster': cluster_dict,
-             'task': {'type': FLAGS.job_name, 'index': FLAGS.task_index}})
-  
-  # Create and start a server for the local task.
-  server = tf.train.Server(cluster,
-                           job_name=FLAGS.job_name,
-                           task_index=FLAGS.task_index)
-
-  if FLAGS.job_name == "ps":
-    server.join()
-  elif FLAGS.job_name == "worker":
-    #with tf.device(tf.train.replica_device_setter(
-    #worker_device = "/job:worker/task:%d" % FLAGS.task_index,
-    #cluster = cluster)):
-    #  run_config = learn.RunConfig(master = server.target)
-    work_fun = main
-    if FLAGS.work_type == 'train':
-      work_fun = main
-    elif FLAGS.work_type == 'eval':
-      work_fun = eval
-    work_fun(unused_argv)
-  
-  
+  # print(' '.join([str(x) for x in train_labels[20, :]]))
+  # print(' '.join([str(x) for x in result[0, :]]))
+  auc_result = []
+  for i in range(shape[1]):
+    if max(train_labels[:, i]) < 1: continue
+    auc_score = metrics.roc_auc_score(train_labels[:, i], result[:, i])
+    auc_result.append(auc_score)
+  print(' '.join([str(x) for x in auc_result]))
   
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
-  parser.add_argument("--batch_size", type=int, default=128, help="Size of batch fit to model")
+  parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, default=1.0, help="Learning rate")
   parser.add_argument("--train_algm", type=str, default='Adagrad', help="Algorithms used to train")
@@ -430,23 +331,3 @@ if __name__ == "__main__":
   elif FLAGS.work_type == 'predict':
     work_fun = pred
   tf.app.run(main=work_fun, argv=[sys.argv[0]] + unparsed)
-  
-'''
-total_loss = meansq #or other loss calcuation
-l1_regularizer = tf.contrib.layers.l1_regularizer(
-   scale=0.005, scope=None
-)
-weights = tf.trainable_variables() # all vars of your graph
-regularization_penalty = tf.contrib.layers.apply_regularization(l1_regularizer, weights)
-
-regularized_loss = total_loss + regularization_penalty # this loss needs to be minimized
-train_step = tf.train.GradientDescentOptimizer(0.05).minimize(regularized_loss)
-
-
-input_fn = tf.contrib.learn.io.numpy_input_fn({"x":x}, y, batch_size=4,
-                                              num_epochs=1000)
-
-regressor.fit(input_fn=lambda: input_fn(training_set), steps=5000)
-'''
-
-
