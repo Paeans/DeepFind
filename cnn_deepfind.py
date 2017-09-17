@@ -32,7 +32,7 @@ out_unit = 919
 segment_len = 1000
 feature_len = 919
 
-data_dir = '../share/label'
+data_dir = '../label'
 train_file = 'train.mat'
 test_file = 'test.mat'
 
