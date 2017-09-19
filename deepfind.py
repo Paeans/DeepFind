@@ -118,7 +118,9 @@ def cnn_model_fn(features, labels, mode, params):
     #onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=10)
     print(labels, logits)
     loss = tf.losses.sigmoid_cross_entropy(
-        multi_class_labels=labels, logits=logits)
+        multi_class_labels=labels, logits=full_connect2)
+    # loss = tf.contrib.keras.losses.binary_crossentropy(
+        # y_true=labels, y_pred=logits)
   
   # Configure the Training Op (for TRAIN mode)
   if mode == learn.ModeKeys.TRAIN:
@@ -182,10 +184,14 @@ def load_test_from_file(filename, startline, endline, multi = 1000):
   
   
 def main(unused_argv):
+  config = tf.ConfigProto()
+  config.gpu_options.allow_growth = True
+  config=tf.contrib.learn.RunConfig(session_config=config)
   gene_classifier = learn.Estimator(
           model_fn=cnn_model_fn, 
           model_dir=FLAGS.model_dir,
-          params={'learning_rate':FLAGS.learning_rate})
+          params={'learning_rate':FLAGS.learning_rate},
+          config=config)
   
   train_data_file = data_dir + '/' + train_file
   startline = FLAGS.startline
@@ -228,10 +234,14 @@ def main(unused_argv):
 
 def pred(unused_argv):
   print("Prediction")
+  config = tf.ConfigProto()
+  config.gpu_options.allow_growth = True
+  config=tf.contrib.learn.RunConfig(session_config=config)
   gene_classifier = learn.Estimator(
         model_fn=cnn_model_fn, 
         model_dir=FLAGS.model_dir,
-        params={'learning_rate':FLAGS.learning_rate})
+        params={'learning_rate':FLAGS.learning_rate},
+        config=config)
 
   train_data_file = data_dir + '/' + test_file
   
@@ -262,7 +272,7 @@ def pred(unused_argv):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
-  parser.add_argument("--batch_size", type=int, default=100, help="Size of batch fit to model")
+  parser.add_argument("--batch_size", type=int, default=64, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, default=1.0, help="Learning rate")
   parser.add_argument("--train_algm", type=str, default='Adagrad', help="Algorithms used to train")
