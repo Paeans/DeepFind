@@ -234,7 +234,7 @@ def main(unused_argv):
 
 def pred(unused_argv):
   print("Prediction")
-  config = tf.ConfigProto()
+  config = tf.ConfigProto(log_device_placement=True)
   config.gpu_options.allow_growth = True
   config=tf.contrib.learn.RunConfig(session_config=config)
   gene_classifier = learn.Estimator(
@@ -249,7 +249,6 @@ def pred(unused_argv):
                                  train_data_file, 
                                  startline = FLAGS.startline, 
                                  endline = FLAGS.endline)
-  
   
   input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data}, shuffle=False)
   pred_result = gene_classifier.predict(input_fn = input_fn)
