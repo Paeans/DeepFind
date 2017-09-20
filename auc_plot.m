@@ -12,7 +12,7 @@ for i=1:919
   [x, y, ~, auc] = perfcurve(label(:, i), result(:, i), 1);
   auc_result = [auc_result auc];
 
-  plot(x, y);
+  plot(x, y, ':', 'LineWidth', 0.01);
   hold on;
 end
 
