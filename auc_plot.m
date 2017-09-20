@@ -1,15 +1,19 @@
 
 load result.mat;
-auc_result = []
-figure
+auc_result = [];
+figure;
 
-for i=1:918
+for i=1:919
 
-[x, y, _, auc] = perfcurve(label(:, i), result(:, i), 1);
-auc_result = [auc_result auc];
+  if sum(label(:,i)) == 0
+   continue
+  end
 
-plot(x, y);
-hold on;
+  [x, y, ~, auc] = perfcurve(label(:, i), result(:, i), 1);
+  auc_result = [auc_result auc];
+
+  plot(x, y);
+  hold on;
 end
 
 print('auc_result.pdf', '-dpdf');
