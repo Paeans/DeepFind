@@ -5,8 +5,10 @@ from __future__ import print_function
 import os
 import sys
 import argparse
+import json
 
 import h5py
+import hdf5storage as hf
 import numpy as np
 import tensorflow as tf
 
@@ -36,6 +38,7 @@ model_regular = layers.sum_regularizer([tf.contrib.layers.l2_regularizer(5e-07)]
 
 def cnn_model_fn(features, labels, mode, params):
   print(features, labels)  
+  
   input_layer = tf.reshape(features['train_data'], [-1, 4, 1000, 1])
   
   # Convolutional Layer #1
@@ -94,7 +97,7 @@ def cnn_model_fn(features, labels, mode, params):
 
   # Flatten tensor into a batch of vectors
   level3_flat = layers.flatten(level3)
-
+  
   full_connect1 = layers.fully_connected(
       inputs=level3_flat,
       num_outputs=out_unit,
@@ -162,6 +165,7 @@ def load_data_from_file(filename, startline, endline, multi = 1000):
   
   target = h5_label[:,startline * multi : endline * multi]
   data = h5_data[:,:,startline * multi : endline * multi]
+  datafile.close()
   
   return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
           np.transpose(target, (1,0)).astype(dtype = np.float32)
@@ -178,7 +182,7 @@ def load_test_from_file(filename, startline, endline, multi = 1000):
   
   target = h5_label[:,startline * multi : endline * multi]
   data = h5_data[:,:,startline * multi : endline * multi]
-  
+  datafile.close()
   return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
           np.transpose(target, (1,0)).astype(dtype = np.float32)
   
@@ -234,24 +238,28 @@ def main(unused_argv):
 
 def pred(unused_argv):
   print("Prediction")
-  config = tf.ConfigProto(log_device_placement=True)
-  config.gpu_options.allow_growth = True
-  config=tf.contrib.learn.RunConfig(session_config=config)
-  gene_classifier = learn.Estimator(
-        model_fn=cnn_model_fn, 
-        model_dir=FLAGS.model_dir,
-        params={'learning_rate':FLAGS.learning_rate},
-        config=config)
-
-  train_data_file = data_dir + '/' + test_file
-  
-  train_data, train_labels = load_test_from_file(
-                                 train_data_file, 
-                                 startline = FLAGS.startline, 
-                                 endline = FLAGS.endline)
-  
-  input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data}, shuffle=False)
-  pred_result = gene_classifier.predict(input_fn = input_fn)
+  test_data_file = data_dir + '/' + test_file
+  with tf.name_scope('predict_scope') as scope:
+    with tf.device('/gpu:1'):
+      train_data, train_labels = \
+            load_test_from_file(
+              test_data_file, 
+              startline = FLAGS.startline, 
+              endline = FLAGS.endline)
+                                    
+      config = tf.ConfigProto(log_device_placement=True, allow_soft_placement=True)
+      config.gpu_options.allow_growth = True
+      config=tf.contrib.learn.RunConfig(session_config=config)
+      
+      gene_classifier = learn.Estimator(
+            model_fn=cnn_model_fn, 
+            model_dir=FLAGS.model_dir,
+            params={'learning_rate':FLAGS.learning_rate},
+            config=config)
+            
+      input_fn = numpy_io.numpy_input_fn(x={'train_data':train_data}, shuffle=False)
+      pred_result = gene_classifier.predict(input_fn = input_fn)
+    
   shape = train_labels.shape
   print(shape)
   result = []
@@ -261,6 +269,9 @@ def pred(unused_argv):
   result = np.array(result)
   # print(' '.join([str(x) for x in train_labels[20, :]]))
   # print(' '.join([str(x) for x in result[0, :]]))
+  hf.savemat('../label/result.mat', 
+                {'label':train_labels, 'result':result}, 
+                format='7.3')
   auc_result = []
   for i in range(shape[1]):
     if max(train_labels[:, i]) < 1: continue

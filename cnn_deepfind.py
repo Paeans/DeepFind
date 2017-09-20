@@ -203,7 +203,7 @@ def load_data_from_file(filename, startline, endline, multi = 1000):
   
   target = h5_label[:,startline * multi : endline * multi]
   data = h5_data[:,:,startline * multi : endline * multi]
-  
+  datafile.close()
   return np.transpose(data, (2,1,0)).astype(dtype = np.float32), \
           np.transpose(target, (1,0)).astype(dtype = np.float32)
   
