@@ -171,3 +171,16 @@ awk '($10 > 4) && ($10 < 10) {print}'
 
 
 while true; do sensors coretemp-*; nvidia-smi; sleep 1; clear; done
+
+#!/bin/bash
+
+for filename in `ls *.bed`; do
+echo $filename
+mkdir ${filename}.dir
+for cindex in `seq 1 22` X; do
+
+echo chr${cindex}
+awk -v chrname="chr${cindex}" '$1==chrname {print $1 " "$2 " "$3}' $filename > ${filename}.dir/${filename}_chr${cindex}.bed
+
+done;
+done;
