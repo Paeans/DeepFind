@@ -188,3 +188,8 @@ done;
 matlab -nodisplay -nodesktop -nojvm -r 'addpath ..; run chr3' < /dev/null 2>&1 > /dev/null &
 % run is the function defined in a .m file under the directories that included in matlab path
 % addpath will add up level directory to the matlab path, then run is defined in a file at there
+
+for i in `seq 1 12` X; 
+do 
+  nohup matlab -nodisplay -nodesktop -nojvm -r 'addpath ..; run chr'$i < /dev/null 2>&1 > /dev/null & 
+done
