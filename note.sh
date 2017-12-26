@@ -193,3 +193,5 @@ for i in `seq 1 12` X;
 do 
   nohup matlab -nodisplay -nodesktop -nojvm -r 'addpath ..; run chr'$i < /dev/null 2>&1 > /dev/null & 
 done
+
+latexdiff --packages=amsmath,endfloat,hyperref,apacite,siunitx,cleveref,glossaries,mhchem,chemformula old.tex new.tex > diff.tex
