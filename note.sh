@@ -2,7 +2,11 @@
 
 zcat tmp.gz                                               #view gz files (line by line)
 
-while read -r -a vararray; do command; done < file.txt    #read file.txt line by line and split line in to vararray
+while read -r -a vararray; do 
+  command; 
+done < file.txt    
+#read file.txt line by line and split line in to vararray
+
 ${array[@]}                                               #get all the elements in the array
 ${array[index]}                                           #get indexed elements in the array
 ${!array[@]}                                              #get all the indexes of the array
@@ -67,8 +71,8 @@ function myfunc()
 
 myfunc result
 echo $result
-result2=$(myfunc)                                           #bash function to return value
-echo $result2                                               #values can be set in the function and access outside function
+result2=$(myfunc)              #bash function to return value
+echo $result2                  #values can be set in the function and access outside function
 
 myArray=('red' 'orange' 'green')
 
@@ -82,15 +86,20 @@ if false; then cmd; fi
 ssh user@host "
   cd ~/share/label;
   for i in \`seq 0 22\`; do
-    ./filename.sh chr8 \$i 40 &> /dev/null < /dev/null &  #use redirect, otherwise it will hang there
+    ./filename.sh chr8 \$i 40 &> /dev/null < /dev/null &  
+    #use redirect, otherwise it will hang there
   done
   disown -a
 "
 
-for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do ssh $sname "ps x | grep parse"; done
+for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do 
+  ssh $sname "ps x | grep parse"; 
+done
 # if use while, will exit when one shell is finished
 
-for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do ssh $sname "echo ${password} | sudo -S command"; done
+for sname in `cat /etc/hosts | grep slave | awk '{print $2}'`; do 
+  ssh $sname "echo ${password} | sudo -S command"; 
+done
 # sudo -S will read password from stdin, echo ${password} can give password to sudo command
 
 function exec_remote {
@@ -153,19 +162,23 @@ zcat input_file.fastq.gz | awk 'NR%4==1{printf ">%s\n", substr($0,2)}NR%4==2{pri
 
 
 #Illumina FASTQ 1.8 to 1.3
-sed -e '4~4y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJ/@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghi/' myfile.fastq   # add -i to save the result to the same input file
+sed -e '4~4y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJ/@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghi/' myfile.fastq   
+# add -i to save the result to the same input file
 
 
 #Illumina FASTQ 1.3 to 1.8
-sed -e '4~4y/@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghi/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJ/' myfile.fastq   # add -i to save the result to the same input file
+sed -e '4~4y/@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghi/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJ/' myfile.fastq   
+# add -i to save the result to the same input file
 
 
 #Illumina FASTQ 1.8 raw quality to binned quality (HiSeq Qtable 2.10.1, HiSeq 4000 )
-sed -e '4~4y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJKL/))))))))))----------77777<<<<<AAAAAFFFFFJJJJ/' myfile.fastq   # add -i to save the result to the same input file
+sed -e '4~4y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJKL/))))))))))----------77777<<<<<AAAAAFFFFFJJJJ/' myfile.fastq   
+# add -i to save the result to the same input file
 
 
 #Illumina FASTQ 1.8 raw quality to clinto format (a visual block representation)
-sed -e 'n;n;n;y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJKL/▁▁▁▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇██████/' myfile.fastq   # add -i to save the result to the same input file
+sed -e 'n;n;n;y/!"#$%&'\''()*+,-.\/0123456789:;<=>?@ABCDEFGHIJKL/▁▁▁▁▁▁▁▁▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇██████/' myfile.fastq   
+# add -i to save the result to the same input file
 
 awk '($10 > 4) && ($10 < 10) {print}'
 
@@ -173,16 +186,13 @@ awk '($10 > 4) && ($10 < 10) {print}'
 while true; do sensors coretemp-*; nvidia-smi; sleep 1; clear; done
 
 #!/bin/bash
-
 for filename in `ls *.bed`; do
-echo $filename
-mkdir ${filename}.dir
-for cindex in `seq 1 22` X; do
-
-echo chr${cindex}
-awk -v chrname="chr${cindex}" '$1==chrname {print $1 " "$2 " "$3}' $filename > ${filename}.dir/${filename}_chr${cindex}.bed
-
-done;
+  echo $filename
+  mkdir ${filename}.dir
+  for cindex in `seq 1 22` X; do
+    echo chr${cindex}
+    awk -v chrname="chr${cindex}" '$1==chrname {print $1 " "$2 " "$3}' $filename > ${filename}.dir/${filename}_chr${cindex}.bed
+  done;
 done;
 
 matlab -nodisplay -nodesktop -nojvm -r 'addpath ..; run chr3' < /dev/null 2>&1 > /dev/null &
