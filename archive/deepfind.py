@@ -283,7 +283,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument("--batch_size", type=int, default=64, help="Size of batch fit to model")
-  parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs to fit the model")
+  parser.add_argument("--num_epochs", type=int, default=100, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, default=1.0, help="Learning rate")
   parser.add_argument("--train_algm", type=str, default='Adagrad', help="Algorithms used to train")
   parser.add_argument("--work_type", type=str, default="train", help="Type of operation: train, eval or prid")
