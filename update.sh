@@ -4,8 +4,8 @@ msg="master update"
 [[ $1 == "" ]] || msg=$1
 
 #remotelist="origin bucket"
-remotelist[0]=origin
-remotelist[1]=bucket
+#remotelist[0]=origin
+remotelist[0]=bucket
 branch="master"
 
 for remote in ${remotelist[@]}
