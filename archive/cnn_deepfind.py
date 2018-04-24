@@ -43,7 +43,7 @@ model_regular = layers.sum_regularizer([tf.contrib.layers.l2_regularizer(5e-07)]
 
 def cnn_model_fn(features, labels, mode, params):
   print(features, labels)  
-  input_layer = tf.reshape(features['train_data'], [-1, 4, 1000, 1])
+  input_layer = tf.reshape(features['train_data'], [-1, 1, 1000, 4])
 
   # Convolutional Layer #1
   # Computes 32 features using a 5x5 filter with ReLU activation.

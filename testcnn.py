@@ -90,6 +90,10 @@ def test_model():
     if max(label[i, :]) < 1: auc_score = 0.5
     else: auc_score = metrics.roc_auc_score(label[i, :], result[:, i])
     auc_result.append(auc_score)
+  # tmp = np.array(label)
+  # for i in range(tmp.shape[0]):
+    # if max(tmp[i, :]) < 1: tmp[i, 1] = 1
+  # auc_result = metrics.roc_auc_score(np.moveaxis(tmp, -1, 0), result, average = None)
     
   mauc = np.array(auc_result, dtype=np.float32)
   mat_file_name = '_'.join(re.split('_|-', FLAGS.model_filename)[2:6])
@@ -105,7 +109,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument("--batch_size", type=int, 
-                      default=64, help="Size of batch fit to model")
+                      default=32, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, 
                       default=5, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, 
@@ -122,7 +126,7 @@ if __name__ == "__main__":
   parser.add_argument("--use_gpu", type=bool, default="true",
                         help="Flag to use gpu or not")
   parser.add_argument("--gpu_index", type=int, 
-                        default=1,
+                        default=0,
                         help="Indicator of use gpu")
   FLAGS, unparsed = parser.parse_known_args();
   test_model()

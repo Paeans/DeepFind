@@ -12,7 +12,7 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
 
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from keras.optimizers import Adagrad, RMSprop, SGD
 
 from keras.backend import tensorflow_backend as tback
@@ -38,8 +38,8 @@ colorindex = np.array(
 kernel_num = [320, 480, 960]
 kernel_size = [(2,3), (2,3), (2,3)]
 pool_size = [(2,2), (2,2)]
-drop_rate = [0.2, 0.2, 0.5]
-out_unit_1 = 1561
+drop_rate = [0.8, 0.8, 0.5] #[0.2, 0.2, 0.5]
+out_unit_1 = 919 #1561
 out_unit = 919
 sample_shape = (25, 40)
 chanel_size = 3
@@ -52,6 +52,9 @@ label = datafile['traindata'];
 valid = validfile['validxdata'];
 lalid = validfile['validdata'];
 print(data.shape, valid.shape)
+
+kr = l1_l2(1e-2, 5e-2)
+br = l1_l2()
 
 def datagenerator(batch_size = 10):
   steps = data.shape[2]//batch_size;
@@ -100,37 +103,40 @@ def train_model():
                      filters = kernel_num[0], 
                      kernel_size = kernel_size[0], 
                      activation = 'relu',
-                     kernel_regularizer=l1_l2(1e-8, 5e-7),
+                     kernel_regularizer=kr,
                      bias_regularizer=l1_l2()))
     model.add(MaxPooling2D(pool_size = pool_size[0]))
     model.add(Dropout(rate = drop_rate[0]))  
     model.add(Conv2D(filters = kernel_num[1], 
                      kernel_size = kernel_size[1], 
                      activation = 'relu',
-                     kernel_regularizer=l1_l2(1e-8, 5e-7),
+                     kernel_regularizer=kr,
                      bias_regularizer=l1_l2()))
     model.add(MaxPooling2D(pool_size = pool_size[1], strides = (1,1)))
     model.add(Dropout(rate = drop_rate[1]))
     model.add(Conv2D(filters = kernel_num[2], 
                      kernel_size = kernel_size[2], 
                      activation = 'relu',
-                     kernel_regularizer=l1_l2(1e-8, 5e-7),
+                     kernel_regularizer=kr,
                      bias_regularizer=l1_l2()))
     model.add(Dropout(rate = drop_rate[2]))
     model.add(Flatten())
     #model.add(Dense(out_unit_1, activation='relu'))
-    model.add(Dense(out_unit_1))
-    model.add(Dense(out_unit, activation = 'sigmoid'))
+    model.add(Dense(out_unit_1, kernel_regularizer=kr))
+    model.add(Dense(out_unit, kernel_regularizer=kr, activation = 'sigmoid'))
   
   #multi_model = multi_gpu_model(model, gpus = 2)  
   #opt = Adagrad(lr = FLAGS.learning_rate, decay = 1e-6)
   #opt = RMSprop(lr = FLAGS.learning_rate, decay = 1e-3)
-  opt = SGD(lr = FLAGS.learning_rate, momentum = 0.01, decay = 1e-5)
+  opt = SGD(lr = FLAGS.learning_rate, momentum = 0.01, decay = 1e-3)
   model.compile(optimizer = opt, loss = 'binary_crossentropy')
   
-  early_stopping = EarlyStopping(monitor='loss', patience=4)
+  #early_stopping = EarlyStopping(monitor='loss', patience=4)
   early_stopping = EarlyStopping(monitor='val_loss', patience=4)
   model_checkpoint = ModelCheckpoint(FLAGS.model_filename)
+  tensorboard = TensorBoard(
+        log_dir='/home/pangaofeng/share/saved_model/tfboard_log', 
+        histogram_freq=1)
   
   steps_per_epoch = data.shape[2]//FLAGS.batch_size
   if data.shape[2]%FLAGS.batch_size != 0: steps_per_epoch += 1;
@@ -153,7 +159,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_epochs", type=int, 
                         default=999, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, 
-                        default=0.001, help="Learning rate")
+                        default=0.1, help="Learning rate")
   parser.add_argument("--train_algm", type=str, 
                         default='Adagrad', 
                         help="Algorithms used to train")
@@ -161,7 +167,7 @@ if __name__ == "__main__":
                         default="train", 
                         help="Type of operation: train, eval or prid")
   parser.add_argument("--model_filename", type=str, 
-                        default="MY_MODEL_CNN_GPU0_ID003_{epoch:03d}-{loss:.2f}.HDF5", 
+                        default="/home/pangaofeng/share/saved_model/deepfind_model/MY_MODEL_CNN_GPU0_ID005_{epoch:03d}-{loss:.2f}.HDF5", 
                         help="File name to store model")
   parser.add_argument("--gpu_index", type=int, 
                         default=0,
