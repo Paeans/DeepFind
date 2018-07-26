@@ -30,24 +30,17 @@ config.allow_soft_placement = True
 tback.set_session(tf.Session(config = config))
 
 colorindex = np.array(
-                [[0, 0, 255], 
-                 [0, 255, 255], 
-                 [255, 0, 0], 
-                 [255, 255, 0]], 
+                [[0, 0, 0, 255], 
+                 [0, 0, 255, 0], 
+                 [0, 255, 0, 0], 
+                 [255, 0, 0, 0]], 
                 dtype = np.float32)
                 
-kernel_num = [320, 480, 960]
-kernel_size = [(2,3), (2,3), (2,3)]
-pool_size = [(2,2), (2,2)]
-drop_rate = [0.2, 0.2, 0.5]
-out_unit = 919
-sample_shape = (25, 40)
-chanel_size = 3
 
 datafile = h5py.File('/home/pangaofeng/share/label/testn.mat', 'r');
 data = datafile['testxdata'];
 label = datafile['testdata'];
-print(data.shape)
+print(label.shape)
 
 with h5py.File('oauc.mat', 'r') as oauc_file:  
   oauc = np.array(oauc_file['oauc'], dtype=np.float32).T
@@ -60,7 +53,7 @@ def datagenerator(batch_size = 10):
     start = i * batch_size
     end = (i + 1) * batch_size
     res = np.matmul(np.moveaxis(data[:,:, start : end], -1, 0), colorindex)
-    yield res.reshape(res.shape[0], 25, 40, res.shape[2]), \
+    yield res.reshape(res.shape[0], 1, 1000, res.shape[2]), \
           np.moveaxis(label[:, start : end], -1, 0)
 
 def dg4pred(batch_size = 10):
@@ -85,6 +78,7 @@ def test_model():
           generator = dg4pred(batch_size = FLAGS.batch_size), 
           steps = steps)
   print(result.shape)
+  # hf.savemat('tmp_result_file.mat', {'auc_result':result[:, 0:10]}, format = '7.3')
   auc_result = []  
   for i in range(result.shape[1]):
     if max(label[i, :]) < 1: auc_score = 0.5
@@ -109,7 +103,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.register("type", "bool", lambda v: v.lower() == "true")
   parser.add_argument("--batch_size", type=int, 
-                      default=32, help="Size of batch fit to model")
+                      default=128, help="Size of batch fit to model")
   parser.add_argument("--num_epochs", type=int, 
                       default=5, help="Number of epochs to fit the model")
   parser.add_argument("--learning_rate", type=float, 
